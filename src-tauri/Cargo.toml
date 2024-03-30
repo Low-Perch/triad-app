@@ -1,5 +1,5 @@
 [package]
-name = "triad-app"
+name = "triad"
 version = "0.0.0"
 description = "A Tauri App"
 authors = ["you"]
@@ -11,9 +11,10 @@ edition = "2021"
 tauri-build = { version = "1", features = [] }
 
 [dependencies]
-tauri = { version = "1", features = ["shell-open"] }
+tauri = { version = "1", features = [ "macos-private-api", "system-tray", "shell-open"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+tauri-plugin-positioner = { version = "1.0.4", features = ["system-tray"] }
 
 [features]
 # This feature is used for production builds or when a dev server is not specified, DO NOT REMOVE!!

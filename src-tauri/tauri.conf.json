@@ -6,7 +6,7 @@
     "distDir": "../dist"
   },
   "package": {
-    "productName": "triad-app",
+    "productName": "triad",
     "version": "0.0.0"
   },
   "tauri": {
@@ -17,11 +17,26 @@
         "open": true
       }
     },
+    "macOSPrivateApi": true,
+    "systemTray": {
+      "iconPath": "icons/icon.ico",
+      "iconAsTemplate": true,
+      "menuOnLeftClick": false
+    },
     "windows": [
       {
-        "title": "triad-app",
-        "width": 800,
-        "height": 600
+        "title": "triad",
+        "width": 400,
+        "height": 500,
+        "fullscreen": false,
+        "resizable": false,
+        "visible": false,
+        "hiddenTitle": true,
+        "decorations": false,
+        "focus": true,
+        "transparent": false,
+        "skipTaskbar": true,
+        "alwaysOnTop": true
       }
     ],
     "security": {
@@ -30,7 +45,7 @@
     "bundle": {
       "active": true,
       "targets": "all",
-      "identifier": "com.tauri.dev",
+      "identifier": "com.triad.app",
       "icon": [
         "icons/32x32.png",
         "icons/128x128.png",
