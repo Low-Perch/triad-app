@@ -9,7 +9,7 @@
     const modal = getModal()
 </script>
 
-<main class="w-full">
+<main class="container w-full h-full">
     <Header />
     {#if $modal.visible}
         <Modal />

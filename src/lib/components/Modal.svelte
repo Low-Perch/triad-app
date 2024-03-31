@@ -1,4 +1,5 @@
 <script lang="ts">
+    import Info from '../views/Info.svelte'
     import { closeModal, getModal } from '../stores/modal'
     const modal = getModal()
 
@@ -8,8 +9,6 @@
 
         closeModal()
     }
-
-    $: visible = $modal.visible
 </script>
 
 <svelte:body on:keydown|preventDefault={handleKey} />
@@ -18,17 +17,17 @@
     id="modal"
     role="alertdialog"
     aria-modal="true"
-    class="fixed w-5/6 h-5/6 mt-6 outline-white border-2 border-white {visible
-        ? 'block overflow-y-hidden'
-        : 'hidden overflow-y-hidden'} top-1/2 -translate-y-1/2 z-[100] inset-0 flex w-full h-full mx-auto items-center content-center place-content-center"
+    class="fixed w-5/6 h-5/6 mt-3 outline-white border-2 border-white overflow-y-hidden top-1/2 -translate-y-1/2 z-[100] inset-0 mx-auto"
 >
     <div
         id="modal-content"
-        class="absolute z-50 w-full mx-auto bg-transparent border-white bg-white"
+        class="absolute h-full z-50 w-full mx-auto bg-transparent border-white"
     >
 
         <div class="relative flex w-full h-full justify-center">
-            <h1>Modal</h1>
+            {#if $modal?.view == "info"}
+                <Info />
+            {/if}
         </div>
     </div>
 </div>
