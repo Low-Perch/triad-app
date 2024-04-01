@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { closeModal } from '../stores/modal'
 </script>
 
 <div class="flex flex-col w-full h-full text-white p-5 justify-center gap-3 items-center">
@@ -21,7 +22,9 @@
     </ul>
 
     <div class="flex justify-center h-full items-center">
-        <button class="items-center inline-flex justify-center w-24 h-10 border-2 rounded-3xl border-white">
+        <button 
+            on:click={closeModal}
+            class="items-center inline-flex justify-center w-24 h-10 border-2 rounded-3xl border-white">
             <span class="text-md">Play</span>
         </button>
     </div>
