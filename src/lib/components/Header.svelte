@@ -46,7 +46,7 @@
                 </svg>
             </button>
 
-            <ul id="dropdown" class="absolute border-gray-200 border-2 text-sm -left-20 w-40 block text-white list-none">
+            <ul id="dropdown" class="absolute hidden bg-gray-700 border-gray-200 border-2 text-sm -left-20 w-40 block text-white list-none">
                 <li class="py-1 px-2 cursor-pointer hover:bg-gray-200 hover:text-black">
                     Reveal 1 clue position
                 </li>
