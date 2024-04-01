@@ -23,7 +23,7 @@
 >
     <div
         id="modal-content"
-        class="absolute h-full z-50 w-full mx-auto bg-transparent border-white"
+        class="absolute h-full z-50 w-full mx-auto bg-gray-700 border-white"
     >
 
         <div class="relative flex w-full h-full justify-center">
