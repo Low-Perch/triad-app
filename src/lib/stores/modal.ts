@@ -5,7 +5,7 @@ import { getContext, setContext } from 'svelte'
 const STORE = 'modal'
 
 export type ModalView = "info" | "support" | "stats"
-export type Modal = { visible: boolean; view?: ModalView }
+export type Modal = { visible: boolean; view: ModalView | null }
 type Context = Writable<Modal>
 
 export const INIT_MODAL: Modal = { visible: false, view: null }
