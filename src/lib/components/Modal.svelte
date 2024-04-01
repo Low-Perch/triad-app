@@ -1,5 +1,7 @@
 <script lang="ts">
     import Info from '../views/Info.svelte'
+    import Stats from '../views/Stats.svelte'
+
     import { closeModal, getModal } from '../stores/modal'
     const modal = getModal()
 
@@ -27,6 +29,8 @@
         <div class="relative flex w-full h-full justify-center">
             {#if $modal?.view == "info"}
                 <Info />
+            {:else if $modal?.view == "stats"}
+                <Stats />
             {/if}
         </div>
     </div>
