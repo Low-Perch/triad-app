@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte'
 
+    import { initClues } from './lib/stores/clues'
     import { initModal, getModal } from './lib/stores/modal'
     import { initInput, addKey, removeKey } from './lib/stores/input'
 
@@ -12,6 +13,7 @@
 
     initModal()
     initInput()
+    initClues()
 
     const modal = getModal()
 
