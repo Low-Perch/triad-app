@@ -35,7 +35,6 @@ function updateKey({ key, keys, add = false }: UpdateKey): string[] {
 export function addKey(key: string) {
     input.update(prevState => {
         const syncedKeys = updateKey({ key, keys: prevState.keys, add: true })
-        console.log({ adding: syncedKeys })
         return { ...prevState, keys: syncedKeys }
     })
 }
@@ -43,7 +42,6 @@ export function addKey(key: string) {
 export function removeKey() {
     input.update(prevState => {
         const syncedKeys = updateKey({ keys: prevState.keys, add: false })
-        console.log({ removing: syncedKeys })
         return { ...prevState, keys: syncedKeys }
     })
 }
