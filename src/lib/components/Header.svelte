@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { getModal, updateModal, type ModalView, closeModal } from '../stores/modal'
+    import { getModal, updateModal, type ModalView } from '../stores/modal'
     import Dropdown from './Dropdown.svelte'
 
     const modal = getModal()
@@ -19,16 +19,6 @@
 
     function getDropdown(): HTMLButtonElement | null {
         return document.getElementById('dropdown') as HTMLButtonElement
-    }
-
-    function toggleClues() {
-        const dropdown = getDropdown()
-        if (!dropdown) return
-
-        closeModal()
-
-        const isHidden = dropdown.classList.contains("hidden")
-        isHidden ? dropdown.classList.remove("hidden") : dropdown.classList.add("hidden")
     }
 </script>
 
