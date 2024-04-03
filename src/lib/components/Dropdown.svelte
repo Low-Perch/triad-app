@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { disableKeys } from '../stores/keys'
     import { closeModal } from '../stores/modal'
     import { lockClueKey } from '../stores/input'
     import { getClues, activateClue } from '../stores/clues'
@@ -23,15 +24,15 @@
         const clueId = e.detail.id
 
         toggleClues()
-
         activateClue(clueId)
+
         if (clueId == "letter") {
-            const clueKey = $puzzle.key.at(-1)
+            const clueKey = $puzzle.key.at(-1) as string
             lockClueKey(clueKey)
         } else if (clueId == "position") {
             updatePuzzleState(PuzzleState.CLUE)
         } else {
-            // TODO
+            disableKeys($puzzle.key)
         }
     }
 </script>
