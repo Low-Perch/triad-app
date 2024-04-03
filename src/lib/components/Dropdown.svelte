@@ -1,11 +1,13 @@
 <script lang="ts">
     import { closeModal } from '../stores/modal'
+    import { lockClueKey } from '../stores/input'
     import { getClues, activateClue } from '../stores/clues'
-    import { updatePuzzleState, PuzzleState } from '../stores/puzzle'
+    import { updatePuzzleState, PuzzleState, getPuzzle } from '../stores/puzzle'
 
     import DropdownItem from './DropdownItem.svelte'
 
     const clues = getClues()
+    const puzzle = getPuzzle()
 
     function toggleClues() {
         const dropdown = document.getElementById('dropdown') as HTMLButtonElement
@@ -24,7 +26,8 @@
 
         activateClue(clueId)
         if (clueId == "letter") {
-            // TODO
+            const clueKey = $puzzle.key.at(-1)
+            lockClueKey(clueKey)
         } else if (clueId == "position") {
             updatePuzzleState(PuzzleState.CLUE)
         } else {
