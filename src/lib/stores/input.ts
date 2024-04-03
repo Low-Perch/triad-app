@@ -4,10 +4,20 @@ import { getContext, setContext } from 'svelte'
 
 const STORE = 'input'
 
-export type Input = { keys: Array<string>, length: number, disabled: false }
+export type Input = { 
+    length: number,
+    disabled: boolean,
+    keys: Array<string>,
+    lastPositionLocked: boolean
+}
 type Context = Writable<Input>
 
-export const INIT_INPUT: Input = { keys: ['', '', '', ''], length: 4, disabled: false }
+export const INIT_INPUT: Input = { 
+    length: 4,
+    disabled: false,
+    keys: ['', '', '', ''],
+    lastPositionLocked: false
+}
 
 const input = writable(INIT_INPUT)
 
@@ -19,29 +29,49 @@ export function getInput() {
     return getContext<Context>(STORE)
 }
 
-type UpdateKey = { key?: string, keys: string[], add: boolean }
-function updateKey({ key, keys, add = false }: UpdateKey): string[] {
+type UpdateKey = { key?: string, prevState: Input, add: boolean }
+
+function updateKey({ key, prevState, add = false }: UpdateKey): string[] {
+    const keys = prevState.keys.slice()
+
     let emptySpaceIdx = add 
         ? keys.findIndex(value => value == '')
-        : keys.findLastIndex(value => value != '')
+        : (prevState.lastPositionLocked ? keys.slice(0, keys.length - 1) : keys)
+            .findLastIndex(value => value != '')
     
     if (emptySpaceIdx < 0) return keys
 
-    if (add && key) return [...keys.slice(0, emptySpaceIdx), key, ...keys.slice(emptySpaceIdx + 1)]
+    if (add && key) {
+        if (prevState.lastPositionLocked) {
+            if (emptySpaceIdx == keys.length - 1) return keys
+        } 
 
-    return [...keys.slice(0, emptySpaceIdx), '', ...keys.slice(emptySpaceIdx + 1)]
+        keys.splice(emptySpaceIdx, 1, key)
+    } else {
+        keys.splice(emptySpaceIdx, 1, '')
+    }
+
+    return keys
 }
 
 export function addKey(key: string) {
     input.update(prevState => {
-        const syncedKeys = updateKey({ key, keys: prevState.keys, add: true })
+        const syncedKeys = updateKey({ key, prevState, add: true })
         return { ...prevState, keys: syncedKeys }
     })
 }
 
 export function removeKey() {
     input.update(prevState => {
-        const syncedKeys = updateKey({ keys: prevState.keys, add: false })
+        const syncedKeys = updateKey({ prevState, add: false })
         return { ...prevState, keys: syncedKeys }
+    })
+}
+
+export function lockClueKey(key: string) {
+    input.update(prevState => {
+        const syncedKeys = prevState.keys.slice()
+        syncedKeys[syncedKeys.length - 1] = key
+        return { ...prevState, lastPositionLocked: true, keys: syncedKeys }
     })
 }
