@@ -32,6 +32,5 @@ export function getPuzzle() {
 }
 
 export function updatePuzzleState(state: PuzzleState) {
-    console.log({ pz: state })
     puzzle.update(prevState => ({...prevState, state }))
 }
