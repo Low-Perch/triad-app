@@ -4,6 +4,8 @@
 
     const modal = getModal()
 
+    const TITLE = 'triad'.split('')
+
     function displayModal(e: MouseEvent) {
         const button = e.currentTarget as HTMLButtonElement
         const viewName = button.name as ModalView
@@ -23,9 +25,13 @@
 </script>
 
 <header class="flex w-full items-center relative p-4 py-2">
-    <h1 class="inline-flex text-white text-3xl tracking-widest font-sans font-light">
-        Triad
-    </h1>
+    <div class="flex space-between gap-x-2">
+        {#each TITLE as char (char)}
+            <p class="inline-flex justify-center items-center uppercase font-bold border-white border-2 w-6 h-6 aspect-square leading-none p-2 text-sm">
+                {char}
+            </p>
+        {/each}
+    </div>
 
     <div class="relative flex justify-end items-center w-full space-x-2">
         <Dropdown />
