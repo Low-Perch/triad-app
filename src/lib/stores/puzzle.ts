@@ -10,10 +10,11 @@ export enum PuzzleState {
     SOLUTION = 'solution'
 }
 
-export type Puzzle = { state: PuzzleState, start: string, clue: string, solution: string }
+export type Puzzle = { key: string, state: PuzzleState, start: string, clue: string, solution: string }
 type Context = Writable<Puzzle>
 
 export const INIT_PUZZLE: Puzzle = {
+    key: "FIRM",
     state: PuzzleState.START,
     start: 'WARE / REAF / CON',
     clue: 'WARE____ / REAF / CON', 
