@@ -1,5 +1,6 @@
 <script lang="ts">
     import { getModal, updateModal, type ModalView } from '../stores/modal'
+
     import Dropdown from './Dropdown.svelte'
 
     const modal = getModal()
@@ -15,12 +16,8 @@
 
         updateModal({ view, visible })
 
-        const dropdown = getDropdown()
-        dropdown?.classList?.add("hidden")
-    }
-
-    function getDropdown(): HTMLButtonElement | null {
-        return document.getElementById('dropdown') as HTMLButtonElement
+        const dropdown = document.getElementById('dropdown') as HTMLButtonElement
+        dropdown?.classList?.add('hidden')
     }
 </script>
 
