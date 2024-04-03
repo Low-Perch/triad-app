@@ -1,6 +1,7 @@
 <script lang="ts">
     import { closeModal } from '../stores/modal'
     import { getClues, activateClue } from '../stores/clues'
+    import { updatePuzzleState, PuzzleState } from '../stores/puzzle'
 
     import DropdownItem from './DropdownItem.svelte'
 
@@ -25,7 +26,7 @@
         if (clueId == "letter") {
             // TODO
         } else if (clueId == "position") {
-            // TODO
+            updatePuzzleState(PuzzleState.CLUE)
         } else {
             // TODO
         }

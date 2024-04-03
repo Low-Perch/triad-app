@@ -2,6 +2,7 @@
     import { onMount } from 'svelte'
 
     import { initClues } from './lib/stores/clues'
+    import { getPuzzle, initPuzzle } from './lib/stores/puzzle'
     import { initModal, getModal } from './lib/stores/modal'
     import { initInput, addKey, removeKey } from './lib/stores/input'
 
@@ -14,8 +15,10 @@
     initModal()
     initInput()
     initClues()
+    initPuzzle()
 
     const modal = getModal()
+    const puzzle = getPuzzle()
 
     function handleKeyboard(e: KeyboardEvent) {
         const allowedKeys = ['Enter', 'Backspace', 'Delete']
@@ -33,6 +36,8 @@
         }
     }
 
+    $: puzzleText = $puzzle[$puzzle.state]
+
     onMount(() => {
         window.addEventListener('keydown', handleKeyboard)
 
@@ -48,7 +53,7 @@
     {/if}
 
     <Header />
-    <Clues />
+    <Clues text={puzzleText} />
     <Input />
     <Keys />
 </main>
