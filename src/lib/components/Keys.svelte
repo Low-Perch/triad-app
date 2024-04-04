@@ -8,7 +8,7 @@
     export let disabledKeys: string[]
 </script>
 
-<div class="flex-col justify-center left-1/2 -translate-x-1/2 items-center w-full px-4 absolute bottom-6">
+<div class="flex-col justify-center left-1/2 -translate-x-1/2 items-center w-full px-4 absolute bottom-3">
     <div class="flex justify-center gap-x-2 items-center">
         {#each firstRow as key (key)}
             <Key key={key} disabled={disabledKeys.includes(key)} />

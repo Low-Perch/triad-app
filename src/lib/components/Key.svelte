@@ -22,7 +22,7 @@
 <button 
     name={key}
     disabled={disabled}
-    style="width: {width == 10 ? '2rem' : '2.5rem'}"
+    style="width: {width == 8 ? '2rem' : '3rem'}"
     on:click|preventDefault|stopPropagation={handleKey}
     class="h-10 rounded-sm bg-gray-700 hover:bg-gray-500 disabled:bg-gray-400 disabled:cursor-auto"
 >
