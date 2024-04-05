@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store'
+import { derived, writable } from 'svelte/store'
 import type { Writable } from 'svelte/store'
 import { getContext, setContext } from 'svelte'
 
@@ -27,6 +27,13 @@ export function initClues() {
 export function getClues() {
     return getContext<Context>(STORE)
 }
+
+export const keyLocked = derived(clues, ($clues) => {
+    const letterClue = $clues.clues.find(({ id }) => id == 'letter')
+    if (!letterClue) return false
+
+    return letterClue.active
+})
 
 export function activateClue(clueId: string) {
     clues.update(prevState => {
