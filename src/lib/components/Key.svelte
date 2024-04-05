@@ -1,21 +1,31 @@
 <script lang="ts">
-    import { addKey, removeKey } from '../stores/input'
+    import { getPuzzle, markPuzzleSolved } from '../stores/puzzle'
+    import { getInput, addKey, removeKey, updateInputState, InputState } from '../stores/input'
+
+    import { validSolution } from '../utils/validation'
 
     export let key: string;
     export let width: number = 8
     export let disabled: boolean = false
 
+    const input = getInput()
+    const puzzle = getPuzzle()
+
     function handleKey(e: Event)  {
+        if ($puzzle.solved) return
+
         const button = e.currentTarget as HTMLButtonElement
         const key = button.name.toUpperCase()
 
         if (key == "GO") {
-            // TODO
-        } else if (key == "DEL") {
-            removeKey()
-        } else {
-            addKey(key)
-        }
+            const solved = validSolution({ input: $input.keys, key: $puzzle.key })
+            const inputState = solved ? InputState.CORRECT : InputState.INCORRECT
+            solved && markPuzzleSolved()
+            return updateInputState(inputState)
+        } 
+
+        updateInputState(InputState.EDIT)
+        key == "DEL" ? removeKey() : addKey(key)
     }
 </script>
 
