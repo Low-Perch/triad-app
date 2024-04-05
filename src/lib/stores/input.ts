@@ -4,18 +4,27 @@ import { getContext, setContext } from 'svelte'
 
 const STORE = 'input'
 
+export enum InputState {
+    EDIT = 'edit',
+    CORRECT = 'correct',
+    INCORRECT = 'incorrect',
+}
+
 export type Input = { 
     length: number,
+    state: InputState,
     disabled: boolean,
     keys: Array<string>,
     lastPositionLocked: boolean
 }
+
 type Context = Writable<Input>
 
 export const INIT_INPUT: Input = { 
     length: 4,
     disabled: false,
     keys: ['', '', '', ''],
+    state: InputState.EDIT,
     lastPositionLocked: false
 }
 
@@ -52,6 +61,10 @@ function updateKey({ key, prevState, add = false }: UpdateKey): string[] {
     }
 
     return keys
+}
+
+export function updateInputState(state: InputState) {
+    input.update(prevState => ({ ...prevState, state }))
 }
 
 export function addKey(key: string) {
