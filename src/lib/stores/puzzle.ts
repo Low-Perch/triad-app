@@ -10,11 +10,19 @@ export enum PuzzleState {
     SOLUTION = 'solution'
 }
 
-export type Puzzle = { key: string, state: PuzzleState, start: string, clue: string, solution: string }
+export type Puzzle = { 
+    key: string,
+    clue: string,
+    start: string,
+    solved: boolean,
+    solution: string
+    state: PuzzleState,
+}
 type Context = Writable<Puzzle>
 
 export const INIT_PUZZLE: Puzzle = {
     key: "FIRM",
+    solved: false,
     state: PuzzleState.START,
     start: 'WARE / REAF / CON',
     clue: 'WARE____ / REAF / CON', 
@@ -33,4 +41,8 @@ export function getPuzzle() {
 
 export function updatePuzzleState(state: PuzzleState) {
     puzzle.update(prevState => ({...prevState, state }))
+}
+
+export function markPuzzleSolved() {
+    puzzle.update(prevState => ({...prevState, solved: true }))
 }
