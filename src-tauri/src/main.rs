@@ -12,17 +12,18 @@ fn greet(name: &str) -> String {
 }
 
 fn main() {
-    let quit = CustomMenuItem::new("quit".to_string(), "Quit").accelerator("Cmd+Q");
     let hide = CustomMenuItem::new("hide".to_string(), "Hide").accelerator("Cmd+H");
+    let quit = CustomMenuItem::new("quit".to_string(), "Quit").accelerator("Cmd+Q");
     let tray_menu = SystemTrayMenu::new()
-        .add_item(quit)
+        .add_item(hide)
         .add_native_item(SystemTrayMenuItem::Separator)
-        .add_item(hide);
+        .add_item(quit);
 
     let system_tray = SystemTray::new().with_menu(tray_menu);
 
     tauri::Builder::default()
         .plugin(tauri_plugin_positioner::init())
+        .plugin(tauri_plugin_store::Builder::default().build())
         .system_tray(system_tray)
         .on_system_tray_event(|app, event| {
             tauri_plugin_positioner::on_tray_event(app, &event);
