@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { updateGameState } from '../stores/app'
     import { getPuzzle, markPuzzleSolved } from '../stores/puzzle'
     import { getInput, addKey, removeKey, updateInputState, InputState } from '../stores/input'
 
@@ -11,7 +12,7 @@
     const input = getInput()
     const puzzle = getPuzzle()
 
-    function handleKey(e: Event)  {
+    async function handleKey(e: Event)  {
         if ($puzzle.solved) return
 
         const button = e.currentTarget as HTMLButtonElement
@@ -26,6 +27,8 @@
 
         updateInputState(InputState.EDIT)
         key == "DEL" ? removeKey() : addKey(key)
+
+        await updateGameState({ key: 'input', state: $input })
     }
 </script>
 
