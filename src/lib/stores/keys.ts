@@ -19,6 +19,10 @@ export function getKeys() {
     return getContext<Context>(STORE)
 }
 
+export function setKeys(state: Keys) {
+    keys.set(state)
+}
+
 function shuffleArray(array: string[]): string[] {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1))

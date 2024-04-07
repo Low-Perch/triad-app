@@ -34,6 +34,10 @@ export function initInput() {
     setContext(STORE, input)
 }
 
+export function setInput(state: Input) {
+    input.set(state)
+}
+
 export function getInput() {
     return getContext<Context>(STORE)
 }

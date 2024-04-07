@@ -24,6 +24,10 @@ export function initClues() {
     setContext(STORE, clues)
 }
 
+export function setClues(state: Clues) {
+    clues.set(state)
+}
+
 export function getClues() {
     return getContext<Context>(STORE)
 }

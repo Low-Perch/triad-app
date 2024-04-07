@@ -35,6 +35,10 @@ export function initPuzzle() {
     setContext(STORE, puzzle)
 }
 
+export function setPuzzle(state: Puzzle) {
+    puzzle.set(state)
+}
+
 export function getPuzzle() {
     return getContext<Context>(STORE)
 }
