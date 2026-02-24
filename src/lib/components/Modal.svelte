@@ -2,18 +2,19 @@
     import Info from '../views/Info.svelte'
     import Stats from '../views/Stats.svelte'
 
-    import { closeModal, getModal } from '../stores/modal'
+    import { closeModal, getModal } from '../stores/modal.svelte'
     const modal = getModal()
 
     function handleKey(evt: KeyboardEvent) {
-        if (!$modal.visible) return
+        if (!modal.visible) return
         if (!['Esc', 'Escape'].includes(evt.key)) return
 
+        evt.preventDefault()
         closeModal()
     }
 </script>
 
-<svelte:body on:keydown|preventDefault={handleKey} />
+<svelte:body onkeydown={handleKey} />
 
 <div
     id="modal"
@@ -27,9 +28,9 @@
     >
 
         <div class="relative flex w-full h-full justify-center">
-            {#if $modal?.view == "info"}
+            {#if modal?.view == "info"}
                 <Info />
-            {:else if $modal?.view == "stats"}
+            {:else if modal?.view == "stats"}
                 <Stats />
             {/if}
         </div>

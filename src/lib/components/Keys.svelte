@@ -5,7 +5,7 @@
     const secondRow = 'asdfghjkl'.split('')
     const lastRow = 'zxcvbnm'.split('')
 
-    export let disabledKeys: string[]
+    let { disabledKeys }: { disabledKeys: string[] } = $props()
 </script>
 
 <div class="flex-col justify-center left-1/2 -translate-x-1/2 items-center w-full px-4 absolute bottom-3">

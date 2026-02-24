@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { closeModal } from '../stores/modal'
+    import { closeModal } from '../stores/modal.svelte'
 </script>
 
 <div class="flex flex-col w-full h-full text-white p-5 py-3 justify-center gap-3 items-center">
@@ -65,13 +65,13 @@
 
     <div class="flex w-full justify-between h-full items-center">
         <button 
-            on:click={closeModal}
+            onclick={closeModal}
             class="items-center inline-flex justify-center w-32 h-10 border-2 rounded-3xl border-white">
             <span class="text-md">View Puzzle</span>
         </button>
 
         <button 
-            on:click={closeModal}
+            onclick={closeModal}
             class="items-center inline-flex bg-[#26b726] justify-center w-24 h-10 border-2 rounded-3xl border-[#26b726]">
             <span class="text-md text-white">Share</span>
         </button>
