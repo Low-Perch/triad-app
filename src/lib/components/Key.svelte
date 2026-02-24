@@ -39,9 +39,39 @@
 <button
     name={key}
     {disabled}
-    style="width: {width == 8 ? '2rem' : '3rem'}"
     onclick={handleKey}
-    class="h-10 rounded-sm bg-gray-700 hover:bg-gray-500 disabled:bg-gray-400 disabled:cursor-auto"
+    class="game-key"
+    class:wide={width == 12}
 >
-    <span class="text-sm font-semibold uppercase w-full">{key}</span>
+    <span class="text-xs font-bold uppercase w-full">{key}</span>
 </button>
+
+<style>
+    .game-key {
+        height: 3rem;
+        width: 2rem;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--tone-key);
+        color: var(--tone-key-text);
+        cursor: pointer;
+        user-select: none;
+        transition: background-color 0.1s;
+    }
+
+    .game-key:hover:not(:disabled) {
+        background-color: var(--tone-key-active);
+    }
+
+    .game-key:disabled {
+        opacity: 0.4;
+        cursor: auto;
+    }
+
+    .game-key.wide {
+        width: 3.25rem;
+        font-size: 0.7rem;
+    }
+</style>

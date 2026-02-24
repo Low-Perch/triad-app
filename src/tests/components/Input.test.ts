@@ -14,7 +14,7 @@ describe("Input component", () => {
 
   it("renders 4 input boxes", () => {
     const { container } = render(Input);
-    const boxes = container.querySelectorAll(".box");
+    const boxes = container.querySelectorAll(".tile");
     expect(boxes).toHaveLength(4);
   });
 
@@ -31,7 +31,7 @@ describe("Input component", () => {
   it("applies solved class when state is CORRECT", () => {
     setInput({ ...INIT_INPUT, keys: ["F", "I", "R", "M"], state: InputState.CORRECT });
     const { container } = render(Input);
-    const boxes = container.querySelectorAll(".box");
+    const boxes = container.querySelectorAll(".tile");
     boxes.forEach((box) => {
       expect(box.className).toContain("solved");
     });
@@ -40,7 +40,7 @@ describe("Input component", () => {
   it("applies shake class when state is INCORRECT", () => {
     setInput({ ...INIT_INPUT, keys: ["T", "E", "S", "T"], state: InputState.INCORRECT });
     const { container } = render(Input);
-    const boxes = container.querySelectorAll(".box");
+    const boxes = container.querySelectorAll(".tile");
     boxes.forEach((box) => {
       expect(box.className).toContain("shake");
     });

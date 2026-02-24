@@ -11,18 +11,18 @@
     let showLock = $derived(getKeyLocked() && !puzzle.solved)
 </script>
 
-<div class="flex justify-center items-center my-8 h-40">
+<div class="flex justify-center items-center my-6 h-40">
     {#each input.keys as key, i (i)}
         <div
             class:solved={correct}
             class:shake={incorrect}
-            class:bg-green-500={correct}
-            class="relative box flex m-4 aspect-square border-white border-2 w-12 h-12 justify-center place-items-center"
+            class:filled={key !== ''}
+            class="tile"
         >
-            <p class="text-white uppercase text-3xl">{key}</p>
+            <p class="text-tone-text uppercase text-3xl font-bold">{key}</p>
 
             {#if showLock && i == input.keys.length - 1}
-                <svg viewBox="0 0 24 24" class="absolute bg-transparent -bottom-4 w-6 h-6 fill-white">
+                <svg viewBox="0 0 24 24" class="absolute bg-transparent -bottom-4 w-5 h-5 fill-tone-text-sub">
                     <path d="m18 8h-1v-2c0-2.76-2.24-5-5-5s-5 2.24-5 5v2h-1c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9h-6.2v-2c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1z"/>
                 </svg>
             {/if}
@@ -31,14 +31,25 @@
 </div>
 
 <style>
-    .box {
-        transition: scale .1s, color .2s, background-color .2s, transform .6s;
+    .tile {
+        @apply relative flex m-3 aspect-square w-14 h-14 justify-center place-items-center;
+        border: 2px solid var(--tone-border);
+        transition: scale .1s, border-color .2s, background-color .2s, transform .6s;
         transition-delay: 0s, .1s, .1s, 0s;
     }
 
+    .tile.filled {
+        border-color: var(--tone-border-strong);
+    }
+
     .solved {
-        @apply bg-[#38c346] border-[#38c346];
+        background-color: var(--tone-correct);
+        border-color: var(--tone-correct);
         transform: rotateY(2turn);
+    }
+
+    .solved p {
+        color: #ffffff;
     }
 
     .shake {
@@ -46,24 +57,10 @@
     }
 
     @keyframes shakeAnimation {
-        0% {
-            transform: translateX(0)
-        }
-
-        25% {
-            transform: translateX(-7px)
-        }
-
-        50% {
-            transform: translateX(7px)
-        }
-
-        75% {
-            transform: translateX(-7px)
-        }
-
-        to {
-            transform: translateX(0)
-        }
+        0% { transform: translateX(0) }
+        25% { transform: translateX(-7px) }
+        50% { transform: translateX(7px) }
+        75% { transform: translateX(-7px) }
+        to { transform: translateX(0) }
     }
 </style>

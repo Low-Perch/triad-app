@@ -20,13 +20,9 @@
     id="modal"
     role="alertdialog"
     aria-modal="true"
-    class="fixed w-5/6 h-5/6 mt-3 outline-white border-2 border-white overflow-y-hidden top-1/2 -translate-y-1/2 z-[100] inset-0 mx-auto"
+    class="modal-overlay"
 >
-    <div
-        id="modal-content"
-        class="absolute h-full z-50 w-full mx-auto bg-gray-700 border-white"
-    >
-
+    <div class="modal-content">
         <div class="relative flex w-full h-full justify-center">
             {#if modal?.view == "info"}
                 <Info />
@@ -36,3 +32,30 @@
         </div>
     </div>
 </div>
+
+<style>
+    .modal-overlay {
+        position: fixed;
+        width: 83.333%;
+        height: 83.333%;
+        margin-top: 0.75rem;
+        overflow-y: hidden;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 100;
+        inset-inline: 0;
+        margin-inline: auto;
+        border: 1px solid var(--tone-border);
+        border-radius: 8px;
+    }
+
+    .modal-content {
+        position: absolute;
+        height: 100%;
+        z-index: 50;
+        width: 100%;
+        margin-inline: auto;
+        background-color: var(--tone-surface);
+        border-radius: 8px;
+    }
+</style>

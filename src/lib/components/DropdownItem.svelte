@@ -17,8 +17,30 @@
         id={clue.id}
         onclick={passClue}
         disabled={clue.active}
-        class="w-full px-2.5 py-1 cursor-pointer text-left bg-gray-700 hover:bg-gray-200 hover:text-black disabled:text-white disabled:cursor-auto disabled:bg-transparent disabled:line-through"
+        class="dropdown-item"
     >
         {clue.note}
     </button>
 </li>
+
+<style>
+    .dropdown-item {
+        width: 100%;
+        padding: 0.375rem 0.75rem;
+        cursor: pointer;
+        text-align: left;
+        background-color: transparent;
+        color: var(--tone-text);
+        transition: background-color 0.1s;
+    }
+
+    .dropdown-item:hover:not(:disabled) {
+        background-color: var(--tone-key);
+    }
+
+    .dropdown-item:disabled {
+        color: var(--tone-text-sub);
+        cursor: auto;
+        text-decoration: line-through;
+    }
+</style>

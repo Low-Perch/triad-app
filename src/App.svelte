@@ -10,6 +10,7 @@
     import { getPuzzle, setPuzzle } from './lib/stores/puzzle.svelte'
     import { setInput, getInput } from './lib/stores/input.svelte'
     import { getStats, setStats } from './lib/stores/stats.svelte'
+    import { initTheme } from './lib/stores/theme.svelte'
 
     import Keys from './lib/components/Keys.svelte'
     import Modal from './lib/components/Modal.svelte'
@@ -86,6 +87,7 @@
     }
 
     onMount(() => {
+        initTheme()
         init()
 
         window.addEventListener('keydown', handleKeyboard)

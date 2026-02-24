@@ -2,6 +2,37 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+    --tone-bg: #ffffff;
+    --tone-surface: #ffffff;
+    --tone-text: #1a1a1b;
+    --tone-text-sub: #787c7e;
+    --tone-border: #d3d6da;
+    --tone-border-strong: #878a8c;
+    --tone-key: #d3d6da;
+    --tone-key-active: #c4c8cc;
+    --tone-key-text: #1a1a1b;
+    --tone-correct: #6aaa64;
+    --tone-overlay: rgba(0, 0, 0, 0.5);
+}
+
+.dark {
+    --tone-bg: #121213;
+    --tone-surface: #1a1a1b;
+    --tone-text: #d7dadc;
+    --tone-text-sub: #818384;
+    --tone-border: #3a3a3c;
+    --tone-border-strong: #565758;
+    --tone-key: #818384;
+    --tone-key-active: #6e7072;
+    --tone-key-text: #d7dadc;
+    --tone-correct: #538d4e;
+    --tone-overlay: rgba(0, 0, 0, 0.7);
+}
+
 body {
-    @apply bg-[#242124] text-white h-screen;
+    background-color: var(--tone-bg);
+    color: var(--tone-text);
+    height: 100vh;
+    transition: background-color 0.2s, color 0.2s;
 }
