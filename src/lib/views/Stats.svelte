@@ -115,11 +115,7 @@
         </div>
     </div>
 
-    <div class="flex w-full justify-between h-full items-center gap-3">
-        <button onclick={closeModal} class="outline-btn">
-            <span class="text-sm font-semibold">View Puzzle</span>
-        </button>
-
+    <div class="flex w-full justify-center h-full items-center gap-3">
         {#if puzzle.solved}
             <button onclick={handleNewGame} class="primary-btn">
                 <span class="text-sm font-semibold text-white">Next</span>
@@ -133,30 +129,11 @@
 </div>
 
 <style>
-    .outline-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 8rem;
-        height: 2.5rem;
-        border-radius: 9999px;
-        cursor: pointer;
-        border: 1px solid var(--tone-border-strong);
-        color: var(--tone-text);
-        background: transparent;
-        transition: background-color 0.15s;
-    }
-
-    .outline-btn:hover {
-        background-color: var(--tone-key);
-    }
-
     .primary-btn {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 6rem;
-        height: 2.5rem;
+        padding: 0.625rem 1.5rem;
         border-radius: 9999px;
         cursor: pointer;
         background-color: var(--tone-correct);

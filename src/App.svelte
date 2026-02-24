@@ -4,7 +4,7 @@
 
     import * as bridge from './lib/bridge'
 
-    import { getModal, openModal } from './lib/stores/modal.svelte'
+    import { getModal } from './lib/stores/modal.svelte'
     import { getKeys, setKeys } from './lib/stores/keys.svelte'
     import { getClues, setClues } from './lib/stores/clues.svelte'
     import { getPuzzle, setPuzzle } from './lib/stores/puzzle.svelte'
@@ -25,7 +25,11 @@
     const modal = getModal()
     const puzzle = getPuzzle()
 
+    const stats = getStats()
+    const clues = getClues()
+
     let loading = $state(true)
+    let copied = $state(false)
 
     async function handleKeyboard(e: KeyboardEvent) {
         if (puzzle.solved) return
@@ -42,7 +46,6 @@
             setStats(result.stats)
             if (result.solved) {
                 setPuzzle({ ...puzzle, solved: true, state: result.puzzleState })
-                openModal('stats')
             } else {
                 setTimeout(async () => {
                     const clearedInput = await bridge.clearInput()
@@ -59,8 +62,49 @@
         setInput(updatedInput)
     }
 
+    function generateShareText(): string {
+        const squares = clues.clues.map(c => c.active ? '🟨' : '🟩').join('')
+        const lines = [`Triad ${squares}`]
+
+        const latestTime = stats.solveTimes.length > 0
+            ? stats.solveTimes[stats.solveTimes.length - 1]
+            : null
+
+        const parts: string[] = []
+        if (latestTime !== null) parts.push(`⏱️ ${latestTime}s`)
+        if (stats.currentStreak > 0) parts.push(`🔥 ${stats.currentStreak}`)
+        if (parts.length > 0) lines.push(parts.join(' | '))
+
+        return lines.join('\n')
+    }
+
+    async function handleShare() {
+        const text = generateShareText()
+        try {
+            await navigator.clipboard.writeText(text)
+            copied = true
+            setTimeout(() => { copied = false }, 2000)
+        } catch {
+            console.error('Failed to copy to clipboard')
+        }
+    }
+
+    async function handleNewGame() {
+        const game = await bridge.newGame()
+        setPuzzle(game.puzzle)
+        setClues(game.clues)
+        setInput(game.input)
+        setKeys(game.keys)
+        setStats(game.stats)
+    }
+
     let puzzleText = $derived(puzzle[puzzle.state])
     let disabledKeys = $derived(keys.disabledKeys)
+    let solveTime = $derived(
+        stats.solveTimes.length > 0
+            ? stats.solveTimes[stats.solveTimes.length - 1]
+            : null
+    )
 
     let unlistenClose: (() => void) | undefined
     let unlistenFocus: (() => void) | undefined
@@ -115,6 +159,60 @@
         <Header />
         <Clues text={puzzleText} />
         <Input />
-        <Keys {disabledKeys} />
+
+        {#if puzzle.solved}
+            <div class="post-solve">
+                {#if solveTime !== null}
+                    <p class="solve-time">{solveTime}s</p>
+                {/if}
+                <div class="post-solve-actions">
+                    <button onclick={handleNewGame} class="action-btn">
+                        <span class="text-sm font-semibold">Next</span>
+                    </button>
+                    <button onclick={handleShare} class="action-btn">
+                        <span class="text-sm font-semibold">{copied ? 'Copied!' : 'Share'}</span>
+                    </button>
+                </div>
+            </div>
+        {:else}
+            <Keys {disabledKeys} />
+        {/if}
     {/if}
 </main>
+
+<style>
+    .post-solve {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .solve-time {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--tone-text-sub);
+    }
+
+    .post-solve-actions {
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.625rem 1.5rem;
+        border-radius: 9999px;
+        cursor: pointer;
+        background-color: var(--tone-correct);
+        color: #ffffff;
+        border: none;
+        transition: opacity 0.15s;
+    }
+
+    .action-btn:hover {
+        opacity: 0.9;
+    }
+</style>

@@ -3,7 +3,6 @@
     import { getPuzzle, setPuzzle } from '../stores/puzzle.svelte'
     import { getInput, setInput } from '../stores/input.svelte'
     import { setStats } from '../stores/stats.svelte'
-    import { openModal } from '../stores/modal.svelte'
 
     let { key, width = 8, disabled = false }: { key: string, width?: number, disabled?: boolean } = $props()
 
@@ -25,7 +24,6 @@
             setStats(result.stats)
             if (result.solved) {
                 setPuzzle({ ...puzzle, solved: true, state: result.puzzleState })
-                openModal('stats')
             } else {
                 setTimeout(async () => {
                     const clearedInput = await bridge.clearInput()
