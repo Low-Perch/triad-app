@@ -45,4 +45,11 @@ describe("Input component", () => {
       expect(box.className).toContain("shake");
     });
   });
+
+  it("renders 3 input boxes when length is 3", () => {
+    setInput({ ...INIT_INPUT, length: 3, keys: ["", "", ""] });
+    const { container } = render(Input);
+    const boxes = container.querySelectorAll(".tile");
+    expect(boxes).toHaveLength(3);
+  });
 });

@@ -61,7 +61,7 @@
     </div>
 </header>
 
-<style>
+<style lang="postcss">
     .icon-btn {
         @apply w-8 h-8 flex items-center place-content-center rounded cursor-pointer;
         @apply hover:bg-tone-key-active;

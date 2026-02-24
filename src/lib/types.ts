@@ -52,6 +52,7 @@ export type GameState = {
 export type SubmitResult = {
     solved: boolean
     inputState: InputState
+    puzzleState: PuzzleState
     stats: Stats
 }
 

@@ -1,8 +1,11 @@
 <script lang="ts">
+    import * as bridge from '../bridge'
     import { closeModal } from '../stores/modal.svelte'
-    import { getStats, getSolveRate, getTimeBuckets } from '../stores/stats.svelte'
-    import { getClues } from '../stores/clues.svelte'
-    import { getPuzzle } from '../stores/puzzle.svelte'
+    import { getStats, setStats, getSolveRate, getTimeBuckets } from '../stores/stats.svelte'
+    import { getClues, setClues } from '../stores/clues.svelte'
+    import { getPuzzle, setPuzzle } from '../stores/puzzle.svelte'
+    import { setInput } from '../stores/input.svelte'
+    import { setKeys } from '../stores/keys.svelte'
 
     const stats = getStats()
     const clues = getClues()
@@ -41,6 +44,16 @@
         } catch {
             console.error('Failed to copy to clipboard')
         }
+    }
+
+    async function handleNewGame() {
+        const game = await bridge.newGame()
+        setPuzzle(game.puzzle)
+        setClues(game.clues)
+        setInput(game.input)
+        setKeys(game.keys)
+        setStats(game.stats)
+        closeModal()
     }
 </script>
 
@@ -106,6 +119,12 @@
         <button onclick={closeModal} class="outline-btn">
             <span class="text-sm font-semibold">View Puzzle</span>
         </button>
+
+        {#if puzzle.solved}
+            <button onclick={handleNewGame} class="primary-btn">
+                <span class="text-sm font-semibold text-white">Next</span>
+            </button>
+        {/if}
 
         <button onclick={handleShare} class="primary-btn" disabled={!puzzle.solved}>
             <span class="text-sm font-semibold text-white">{copied ? 'Copied!' : 'Share'}</span>

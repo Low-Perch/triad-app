@@ -4,7 +4,7 @@
 
     import * as bridge from './lib/bridge'
 
-    import { getModal } from './lib/stores/modal.svelte'
+    import { getModal, openModal } from './lib/stores/modal.svelte'
     import { getKeys, setKeys } from './lib/stores/keys.svelte'
     import { getClues, setClues } from './lib/stores/clues.svelte'
     import { getPuzzle, setPuzzle } from './lib/stores/puzzle.svelte'
@@ -39,10 +39,16 @@
         if (e.key == 'Enter') {
             const result = await bridge.submitSolution()
             setInput({ ...input, state: result.inputState })
-            if (result.solved) {
-                setPuzzle({ ...puzzle, solved: true })
-            }
             setStats(result.stats)
+            if (result.solved) {
+                setPuzzle({ ...puzzle, solved: true, state: result.puzzleState })
+                openModal('stats')
+            } else {
+                setTimeout(async () => {
+                    const clearedInput = await bridge.clearInput()
+                    setInput(clearedInput)
+                }, 350)
+            }
             return
         }
 

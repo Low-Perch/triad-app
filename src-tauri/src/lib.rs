@@ -9,6 +9,7 @@ use tauri_plugin_positioner::{Position, WindowExt};
 
 mod commands;
 mod game;
+mod generator;
 mod models;
 mod persistence;
 
@@ -71,6 +72,8 @@ pub fn run() {
             commands::submit_solution,
             commands::activate_clue,
             commands::save_game,
+            commands::new_game,
+            commands::clear_input,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

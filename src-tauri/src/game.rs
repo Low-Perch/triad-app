@@ -1,6 +1,7 @@
 use rand::seq::SliceRandom;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use crate::generator;
 use crate::models::*;
 
 // --- Input operations ---
@@ -55,6 +56,7 @@ pub fn submit_solution(state: &mut GameState) -> bool {
     if solved {
         state.input.state = InputState::Correct;
         mark_puzzle_solved(state);
+        update_puzzle_state(state, PuzzleState::Solution);
         record_puzzle_solved(state);
     } else {
         state.input.state = InputState::Incorrect;
@@ -163,6 +165,55 @@ pub fn mark_puzzle_solved(state: &mut GameState) {
     state.puzzle.solved = true;
 }
 
+// --- Game lifecycle ---
+
+/// Resets game state for a new puzzle while preserving stats.
+pub fn new_game(state: &mut GameState) {
+    let previous_key = state.puzzle.key.to_lowercase();
+
+    let puzzle = generator::generate_puzzle(Some(&previous_key));
+    let key_len = puzzle.key.len();
+
+    state.puzzle = puzzle;
+    state.input = Input {
+        length: key_len,
+        disabled: false,
+        keys: vec!["".to_string(); key_len],
+        state: InputState::Edit,
+        last_position_locked: false,
+    };
+    state.clues = Clues::default();
+    state.keys = Keys::default();
+}
+
+/// Sets up initial game state with a generated puzzle (replaces hardcoded default).
+pub fn initialize_with_generated_puzzle(state: &mut GameState) {
+    let puzzle = generator::generate_puzzle(None);
+    let key_len = puzzle.key.len();
+
+    state.puzzle = puzzle;
+    state.input.length = key_len;
+    state.input.keys = vec!["".to_string(); key_len];
+}
+
+/// Clears input keys after incorrect guess, preserving locked last position.
+pub fn clear_input(state: &mut GameState) {
+    let len = state.input.keys.len();
+    let locked_key = if state.input.last_position_locked {
+        state.input.keys.last().cloned()
+    } else {
+        None
+    };
+
+    state.input.keys = vec!["".to_string(); len];
+
+    if let Some(key) = locked_key {
+        state.input.keys[len - 1] = key;
+    }
+
+    state.input.state = InputState::Edit;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -241,6 +292,7 @@ mod tests {
         assert!(solved);
         assert_eq!(state.input.state, InputState::Correct);
         assert!(state.puzzle.solved);
+        assert_eq!(state.puzzle.state, PuzzleState::Solution);
         assert_eq!(state.stats.solved, 1);
     }
 
@@ -534,5 +586,81 @@ mod tests {
         lock_clue_key(&mut state, "M");
         assert_eq!(state.input.keys[3], "M");
         assert!(state.input.last_position_locked);
+    }
+
+    // --- new_game tests ---
+
+    #[test]
+    fn new_game_resets_puzzle_and_input() {
+        let mut state = default_state();
+        state.puzzle.solved = true;
+        state.stats.played = 5;
+        state.stats.solved = 3;
+
+        new_game(&mut state);
+
+        assert!(!state.puzzle.solved);
+        assert_eq!(state.puzzle.state, PuzzleState::Start);
+        assert_eq!(state.input.state, InputState::Edit);
+        assert!(!state.input.disabled);
+        assert!(!state.input.last_position_locked);
+        // Stats preserved
+        assert_eq!(state.stats.played, 5);
+        assert_eq!(state.stats.solved, 3);
+    }
+
+    #[test]
+    fn new_game_input_length_matches_key() {
+        let mut state = default_state();
+        new_game(&mut state);
+
+        let key_len = state.puzzle.key.len();
+        assert_eq!(state.input.length, key_len);
+        assert_eq!(state.input.keys.len(), key_len);
+    }
+
+    #[test]
+    fn new_game_resets_clues() {
+        let mut state = default_state();
+        state.clues.used = 2;
+        state.clues.available = false;
+
+        new_game(&mut state);
+
+        assert_eq!(state.clues.used, 0);
+        assert!(state.clues.available);
+    }
+
+    // --- clear_input tests ---
+
+    #[test]
+    fn clear_input_resets_keys() {
+        let mut state = default_state();
+        state.input.keys = vec!["A", "B", "C", "D"]
+            .into_iter()
+            .map(String::from)
+            .collect();
+        state.input.state = InputState::Incorrect;
+
+        clear_input(&mut state);
+
+        assert_eq!(state.input.keys, vec!["", "", "", ""]);
+        assert_eq!(state.input.state, InputState::Edit);
+    }
+
+    #[test]
+    fn clear_input_preserves_locked_position() {
+        let mut state = default_state();
+        state.input.keys = vec!["A", "B", "C", "M"]
+            .into_iter()
+            .map(String::from)
+            .collect();
+        state.input.last_position_locked = true;
+        state.input.state = InputState::Incorrect;
+
+        clear_input(&mut state);
+
+        assert_eq!(state.input.keys, vec!["", "", "", "M"]);
+        assert_eq!(state.input.state, InputState::Edit);
     }
 }

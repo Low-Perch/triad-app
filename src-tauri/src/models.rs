@@ -184,6 +184,7 @@ impl Default for GameState {
 pub struct SubmitResult {
     pub solved: bool,
     pub input_state: InputState,
+    pub puzzle_state: PuzzleState,
     pub stats: Stats,
 }
 

@@ -16,13 +16,16 @@ pub fn init_game(
 
     if let Some(saved) = persistence::load_game(&app) {
         *game_state = saved;
+
+        if game_state.puzzle.solved {
+            return Ok(game_state.clone());
+        }
+    } else {
+        game::initialize_with_generated_puzzle(&mut game_state);
     }
 
-    if !game_state.puzzle.solved {
-        game::record_puzzle_played(&mut game_state);
-        game::start_puzzle_timer(&mut game_state);
-    }
-
+    game::record_puzzle_played(&mut game_state);
+    game::start_puzzle_timer(&mut game_state);
     persistence::save_game(&app, &game_state)?;
 
     Ok(game_state.clone())
@@ -70,6 +73,7 @@ pub fn submit_solution(
     Ok(SubmitResult {
         solved,
         input_state: game_state.input.state.clone(),
+        puzzle_state: game_state.puzzle.state.clone(),
         stats: game_state.stats.clone(),
     })
 }
@@ -101,4 +105,32 @@ pub fn save_game(
 ) -> Result<(), String> {
     let game_state = state.lock().map_err(|e| e.to_string())?;
     persistence::save_game(&app, &game_state)
+}
+
+#[tauri::command]
+pub fn new_game(
+    state: State<'_, AppState>,
+    app: tauri::AppHandle,
+) -> Result<GameState, String> {
+    let mut game_state = state.lock().map_err(|e| e.to_string())?;
+
+    game::new_game(&mut game_state);
+    game::record_puzzle_played(&mut game_state);
+    game::start_puzzle_timer(&mut game_state);
+    persistence::save_game(&app, &game_state)?;
+
+    Ok(game_state.clone())
+}
+
+#[tauri::command]
+pub fn clear_input(
+    state: State<'_, AppState>,
+    app: tauri::AppHandle,
+) -> Result<Input, String> {
+    let mut game_state = state.lock().map_err(|e| e.to_string())?;
+
+    game::clear_input(&mut game_state);
+    persistence::save_game(&app, &game_state)?;
+
+    Ok(game_state.input.clone())
 }
