@@ -1,51 +1,45 @@
 <script lang="ts">
-    import { disableKeys } from '../stores/keys.svelte'
+    import * as bridge from '../bridge'
     import { closeModal } from '../stores/modal.svelte'
-    import { lockClueKey } from '../stores/input.svelte'
-    import { getClues, activateClue } from '../stores/clues.svelte'
-    import { updatePuzzleState, PuzzleState, getPuzzle } from '../stores/puzzle.svelte'
+    import { getClues, setClues } from '../stores/clues.svelte'
+    import { setInput } from '../stores/input.svelte'
+    import { getPuzzle, setPuzzle } from '../stores/puzzle.svelte'
+    import { setKeys } from '../stores/keys.svelte'
+    import { getDropdown, toggleDropdown } from '../stores/dropdown.svelte'
 
     import DropdownItem from './DropdownItem.svelte'
 
     const clues = getClues()
-    const puzzle = getPuzzle()
+    const dropdown = getDropdown()
 
     function toggleClues(e?: Event) {
         e?.preventDefault()
         e?.stopPropagation()
 
-        const dropdown = document.getElementById('dropdown') as HTMLButtonElement
-        if (!dropdown) return
-
         closeModal()
-
-        const isHidden = dropdown.classList.contains("hidden")
-        isHidden ? dropdown.classList.remove("hidden") : dropdown.classList.add("hidden")
+        toggleDropdown()
     }
 
-    function handleClue(detail: { id: string }) {
-        const clueId = detail.id
-
+    async function handleClue(detail: { id: string }) {
         toggleClues()
-        activateClue(clueId)
 
-        if (clueId == "letter") {
-            const clueKey = puzzle.key.at(-1) as string
-            lockClueKey(clueKey)
-        } else if (clueId == "position") {
-            updatePuzzleState(PuzzleState.CLUE)
-        } else {
-            disableKeys(puzzle.key)
-        }
+        const result = await bridge.activateClue(detail.id)
+        setClues(result.clues)
+        setInput(result.input)
+        setPuzzle(result.puzzle)
+        setKeys(result.keys)
     }
 </script>
 
-<div tabindex="0" class="group relative inline-block">
+<div class="group relative inline-block">
     <button
         id="support"
         name="support"
         disabled={!clues?.available}
         onclick={toggleClues}
+        aria-label="Lifelines"
+        aria-haspopup="true"
+        aria-expanded={dropdown.open}
         class="w-9 h-9 flex items-center place-content-center cursor-pointer disabled:cursor-auto hover:rounded-full disabled:rounded-none hover:bg-gray-600 disabled:bg-transparent"
     >
         <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 0 64 64" width="20">
@@ -58,7 +52,12 @@
         </svg>
     </button>
 
-    <ul id="dropdown" class="absolute z-20 mt-2 hidden bg-gray-700 border-gray-200 border-2 text-sm -left-6 w-36 text-white list-none">
+    <ul
+        role="menu"
+        aria-label="Available lifelines"
+        class="absolute z-20 mt-2 bg-gray-700 border-gray-200 border-2 text-sm -left-6 w-36 text-white list-none"
+        class:hidden={!dropdown.open}
+    >
         {#each clues.clues as clue (clue.id) }
             <DropdownItem clue={clue} onMessage={handleClue} />
         {/each}

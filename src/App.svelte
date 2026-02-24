@@ -2,13 +2,14 @@
     import { onMount } from 'svelte'
     import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 
-    import { getGameState, updateGameState, initGameState } from './lib/stores/app'
+    import * as bridge from './lib/bridge'
 
     import { getModal } from './lib/stores/modal.svelte'
     import { getKeys, setKeys } from './lib/stores/keys.svelte'
     import { getClues, setClues } from './lib/stores/clues.svelte'
-    import { getPuzzle, setPuzzle, markPuzzleSolved } from './lib/stores/puzzle.svelte'
-    import { setInput, addKey, removeKey, getInput, InputState, updateInputState } from './lib/stores/input.svelte'
+    import { getPuzzle, setPuzzle } from './lib/stores/puzzle.svelte'
+    import { setInput, getInput } from './lib/stores/input.svelte'
+    import { getStats, setStats } from './lib/stores/stats.svelte'
 
     import Keys from './lib/components/Keys.svelte'
     import Modal from './lib/components/Modal.svelte'
@@ -16,15 +17,14 @@
     import Input from './lib/components/Input.svelte'
     import Header from './lib/components/Header.svelte'
 
-    import { validSolution } from './lib/utils/validation'
-
     const appWindow = getCurrentWebviewWindow()
 
     const keys = getKeys()
     const input = getInput()
     const modal = getModal()
-    const clues = getClues()
     const puzzle = getPuzzle()
+
+    let loading = $state(true)
 
     async function handleKeyboard(e: KeyboardEvent) {
         if (puzzle.solved) return
@@ -36,25 +36,20 @@
         if (!allowedInput) return
 
         if (e.key == 'Enter') {
-            const solved = validSolution({ input: input.keys, key: puzzle.key })
-            const inputState = solved ? InputState.CORRECT : InputState.INCORRECT
-            solved && markPuzzleSolved()
-            return updateInputState(inputState)
+            const result = await bridge.submitSolution()
+            setInput({ ...input, state: result.inputState })
+            if (result.solved) {
+                setPuzzle({ ...puzzle, solved: true })
+            }
+            setStats(result.stats)
+            return
         }
 
-        if (input.state !== InputState.EDIT) updateInputState(InputState.EDIT)
-        ;['Backspace', 'Delete'].includes(e.key) ? removeKey() : addKey(e.key.toUpperCase())
+        const updatedInput = ['Backspace', 'Delete'].includes(e.key)
+            ? await bridge.removeKey()
+            : await bridge.addKey(e.key.toUpperCase())
 
-        await updateGameState({ key: 'input', state: $state.snapshot(input) })
-    }
-
-    async function saveGameState() {
-        await initGameState({
-            puzzle: $state.snapshot(puzzle),
-            clues: $state.snapshot(clues),
-            input: $state.snapshot(input),
-            keys: $state.snapshot(keys),
-        })
+        setInput(updatedInput)
     }
 
     let puzzleText = $derived(puzzle[puzzle.state])
@@ -64,24 +59,30 @@
     let unlistenFocus: (() => void) | undefined
 
     async function init() {
-        const game = await getGameState()
-
-        if (!game) {
-            await saveGameState()
-        } else {
+        try {
+            const game = await bridge.initGame()
             setPuzzle(game.puzzle)
             setClues(game.clues)
             setInput(game.input)
             setKeys(game.keys)
+            setStats(game.stats)
+        } catch (error) {
+            console.error('Failed to load game state, using defaults:', error)
         }
 
-        unlistenClose = await appWindow.onCloseRequested(async () => {
-            await saveGameState()
-        })
+        try {
+            unlistenClose = await appWindow.onCloseRequested(async () => {
+                await bridge.saveGame()
+            })
 
-        unlistenFocus = await appWindow.onFocusChanged(async () => {
-            await saveGameState()
-        })
+            unlistenFocus = await appWindow.onFocusChanged(async () => {
+                await bridge.saveGame()
+            })
+        } catch (error) {
+            console.error('Failed to register window event listeners:', error)
+        }
+
+        loading = false
     }
 
     onMount(() => {
@@ -98,12 +99,14 @@
 </script>
 
 <main class="absolute flex-col w-full h-full">
-    {#if modal.visible}
-        <Modal />
-    {/if}
+    {#if !loading}
+        {#if modal.visible}
+            <Modal />
+        {/if}
 
-    <Header />
-    <Clues text={puzzleText} />
-    <Input />
-    <Keys {disabledKeys} />
+        <Header />
+        <Clues text={puzzleText} />
+        <Input />
+        <Keys {disabledKeys} />
+    {/if}
 </main>

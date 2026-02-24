@@ -1,17 +1,8 @@
-export enum PuzzleState {
-    START = 'start',
-    CLUE = 'clue',
-    SOLUTION = 'solution'
-}
+export { PuzzleState } from '../types'
+export type { Puzzle } from '../types'
 
-export type Puzzle = {
-    key: string,
-    clue: string,
-    start: string,
-    solved: boolean,
-    solution: string,
-    state: PuzzleState,
-}
+import { PuzzleState } from '../types'
+import type { Puzzle } from '../types'
 
 export const INIT_PUZZLE: Puzzle = {
     key: "FIRM",
@@ -30,12 +21,4 @@ export function getPuzzle(): Puzzle {
 
 export function setPuzzle(state: Puzzle) {
     Object.assign(puzzle, state)
-}
-
-export function updatePuzzleState(state: PuzzleState) {
-    puzzle.state = state
-}
-
-export function markPuzzleSolved() {
-    puzzle.solved = true
 }

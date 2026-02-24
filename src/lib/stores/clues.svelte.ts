@@ -1,5 +1,6 @@
-export type Clue = { id: string; note: string; active: boolean }
-export type Clues = { clues: Array<Clue>, used: number, available: boolean }
+export type { Clue, Clues } from '../types'
+
+import type { Clues } from '../types'
 
 export const INIT_CLUES: Clues = {
     clues: [
@@ -29,13 +30,4 @@ const _keyLocked = $derived.by(() => {
 
 export function getKeyLocked(): boolean {
     return _keyLocked
-}
-
-export function activateClue(clueId: string) {
-    const clueIndex = clues.clues.findIndex(({ id }) => id == clueId)
-    if (clueIndex < 0 || clues.clues[clueIndex].active || !clues.available) return
-
-    clues.clues[clueIndex].active = true
-    clues.used = clues.used + 1
-    clues.available = clues.used !== 3
 }

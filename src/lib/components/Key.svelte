@@ -1,9 +1,8 @@
 <script lang="ts">
-    import { updateGameState } from '../stores/app'
-    import { getPuzzle, markPuzzleSolved } from '../stores/puzzle.svelte'
-    import { getInput, addKey, removeKey, updateInputState, InputState } from '../stores/input.svelte'
-
-    import { validSolution } from '../utils/validation'
+    import * as bridge from '../bridge'
+    import { getPuzzle, setPuzzle } from '../stores/puzzle.svelte'
+    import { getInput, setInput } from '../stores/input.svelte'
+    import { setStats } from '../stores/stats.svelte'
 
     let { key, width = 8, disabled = false }: { key: string, width?: number, disabled?: boolean } = $props()
 
@@ -20,16 +19,20 @@
         const keyName = button.name.toUpperCase()
 
         if (keyName == "GO") {
-            const solved = validSolution({ input: input.keys, key: puzzle.key })
-            const inputState = solved ? InputState.CORRECT : InputState.INCORRECT
-            solved && markPuzzleSolved()
-            return updateInputState(inputState)
+            const result = await bridge.submitSolution()
+            setInput({ ...input, state: result.inputState })
+            if (result.solved) {
+                setPuzzle({ ...puzzle, solved: true })
+            }
+            setStats(result.stats)
+            return
         }
 
-        updateInputState(InputState.EDIT)
-        keyName == "DEL" ? removeKey() : addKey(keyName)
+        const updatedInput = keyName == "DEL"
+            ? await bridge.removeKey()
+            : await bridge.addKey(keyName)
 
-        await updateGameState({ key: 'input', state: $state.snapshot(input) })
+        setInput(updatedInput)
     }
 </script>
 

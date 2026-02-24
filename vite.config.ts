@@ -1,9 +1,10 @@
 import { defineConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
+import { svelteTesting } from "@testing-library/svelte/vite";
 
 // https://vitejs.dev/config/
 export default defineConfig(async () => ({
-  plugins: [svelte()],
+  plugins: [svelte(), svelteTesting()],
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
@@ -17,5 +18,12 @@ export default defineConfig(async () => ({
       // 3. tell vite to ignore watching `src-tauri`
       ignored: ["**/src-tauri/**"],
     },
+  },
+
+  test: {
+    environment: "jsdom",
+    include: ["src/**/*.{test,spec}.{ts,js}"],
+    setupFiles: ["src/tests/setup.ts"],
+    globals: true,
   },
 }));

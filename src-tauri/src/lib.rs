@@ -1,3 +1,5 @@
+use std::sync::Mutex;
+
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
@@ -5,16 +7,17 @@ use tauri::{
 };
 use tauri_plugin_positioner::{Position, WindowExt};
 
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
+mod commands;
+mod game;
+mod models;
+mod persistence;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_positioner::init())
         .plugin(tauri_plugin_store::Builder::new().build())
+        .manage(Mutex::new(models::GameState::default()))
         .setup(|app| {
             let hide = MenuItem::with_id(app, "hide", "Hide", true, Some("Cmd+H"))?;
             let quit = MenuItem::with_id(app, "quit", "Quit", true, Some("Cmd+Q"))?;
@@ -48,7 +51,7 @@ pub fn run() {
                 })
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "quit" => {
-                        std::process::exit(0);
+                        app.exit(0);
                     }
                     "hide" => {
                         if let Some(window) = app.get_webview_window("main") {
@@ -61,7 +64,14 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![greet])
+        .invoke_handler(tauri::generate_handler![
+            commands::init_game,
+            commands::add_key,
+            commands::remove_key,
+            commands::submit_solution,
+            commands::activate_clue,
+            commands::save_game,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

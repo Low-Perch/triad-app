@@ -11,8 +11,9 @@
     }
 </script>
 
-<li>
+<li role="none">
     <button
+        role="menuitem"
         id={clue.id}
         onclick={passClue}
         disabled={clue.active}
