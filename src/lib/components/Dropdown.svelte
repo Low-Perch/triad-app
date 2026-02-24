@@ -5,12 +5,14 @@
     import { setInput } from '../stores/input.svelte'
     import { getPuzzle, setPuzzle } from '../stores/puzzle.svelte'
     import { setKeys } from '../stores/keys.svelte'
-    import { getDropdown, toggleDropdown } from '../stores/dropdown.svelte'
+    import { getDropdown, toggleDropdown, closeDropdown } from '../stores/dropdown.svelte'
 
     import DropdownItem from './DropdownItem.svelte'
 
     const clues = getClues()
     const dropdown = getDropdown()
+
+    let containerEl: HTMLDivElement
 
     function toggleClues(e?: Event) {
         e?.preventDefault()
@@ -29,9 +31,24 @@
         setPuzzle(result.puzzle)
         setKeys(result.keys)
     }
+
+    function handleWindowClick(e: MouseEvent) {
+        if (!dropdown.open) return
+        if (containerEl?.contains(e.target as Node)) return
+        closeDropdown()
+    }
+
+    function handleWindowKeydown(e: KeyboardEvent) {
+        if (!dropdown.open) return
+        if (!['Esc', 'Escape'].includes(e.key)) return
+        e.preventDefault()
+        closeDropdown()
+    }
 </script>
 
-<div class="group relative inline-block">
+<svelte:window onclick={handleWindowClick} onkeydown={handleWindowKeydown} />
+
+<div class="group relative inline-block" bind:this={containerEl}>
     <button
         id="support"
         name="support"

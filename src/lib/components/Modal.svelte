@@ -16,6 +16,9 @@
 
 <svelte:body onkeydown={handleKey} />
 
+<!-- svelte-ignore a11y_no_static_element_interactions a11y_click_events_have_key_events -->
+<div class="backdrop" onclick={closeModal}></div>
+
 <div
     id="modal"
     role="alertdialog"
@@ -34,6 +37,13 @@
 </div>
 
 <style>
+    .backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 90;
+        background-color: var(--tone-overlay);
+    }
+
     .modal-overlay {
         position: fixed;
         width: 83.333%;
