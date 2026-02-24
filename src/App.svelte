@@ -100,11 +100,14 @@
 
     let puzzleText = $derived(puzzle[puzzle.state])
     let disabledKeys = $derived(keys.disabledKeys)
-    let solveTime = $derived(
-        stats.solveTimes.length > 0
-            ? stats.solveTimes[stats.solveTimes.length - 1]
-            : null
-    )
+    let solveTimeDisplay = $derived.by(() => {
+        if (stats.solveTimes.length === 0) return null
+        const t = stats.solveTimes[stats.solveTimes.length - 1]
+        if (t < 60) return `${t}s`
+        const mins = Math.floor(t / 60)
+        const secs = t % 60
+        return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`
+    })
 
     let unlistenClose: (() => void) | undefined
     let unlistenFocus: (() => void) | undefined
@@ -162,8 +165,8 @@
 
         {#if puzzle.solved}
             <div class="post-solve">
-                {#if solveTime !== null}
-                    <p class="solve-time">{solveTime}s</p>
+                {#if solveTimeDisplay !== null}
+                    <p class="solve-time">{solveTimeDisplay}</p>
                 {/if}
                 <div class="post-solve-actions">
                     <button onclick={handleNewGame} class="action-btn">
