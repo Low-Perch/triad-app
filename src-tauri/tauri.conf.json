@@ -9,21 +9,19 @@
     "frontendDist": "../dist"
   },
   "app": {
-    "macOSPrivateApi": true,
     "windows": [
       {
-        "title": "triad",
+        "title": "Triad",
         "width": 320,
         "height": 500,
         "fullscreen": false,
         "resizable": false,
-        "visible": false,
-        "hiddenTitle": true,
-        "decorations": false,
+        "visible": true,
+        "decorations": true,
         "focus": true,
         "transparent": false,
-        "skipTaskbar": true,
-        "alwaysOnTop": true
+        "skipTaskbar": false,
+        "alwaysOnTop": false
       }
     ],
     "security": {}

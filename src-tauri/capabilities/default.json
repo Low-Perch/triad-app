@@ -4,7 +4,6 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
-    "store:default",
-    "positioner:default"
+    "store:default"
   ]
 }
