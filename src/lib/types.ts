@@ -11,6 +11,7 @@ export type Puzzle = {
     solved: boolean
     solution: string
     state: PuzzleState
+    puzzleNumber: number | null
 }
 
 export enum InputState {
@@ -48,6 +49,7 @@ export type GameState = {
     clues: Clues
     keys: Keys
     stats: Stats
+    puzzleDate: string | null
 }
 
 export type SubmitResult = {

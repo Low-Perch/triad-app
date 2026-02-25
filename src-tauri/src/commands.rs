@@ -2,6 +2,7 @@ use std::sync::Mutex;
 use tauri::State;
 
 use crate::game;
+use crate::generator;
 use crate::models::*;
 use crate::persistence;
 
@@ -14,16 +15,34 @@ pub fn init_game(
 ) -> Result<GameState, String> {
     let mut game_state = state.lock().map_err(|e| e.to_string())?;
 
+    let today = generator::today_as_date_string();
+    let puzzle_number = generator::today_as_days_since_epoch();
+
     if let Some(saved) = persistence::load_game(&app) {
         *game_state = saved;
 
-        if game_state.puzzle.solved {
+        let is_todays_daily = game_state.puzzle_date.as_deref() == Some(today.as_str());
+
+        if is_todays_daily {
+            if game_state.puzzle.solved {
+                return Ok(game_state.clone());
+            }
+            // Resume mid-solve on today's daily
+            game::record_puzzle_played(&mut game_state);
+            game::start_puzzle_timer(&mut game_state);
+            persistence::save_game(&app, &game_state)?;
             return Ok(game_state.clone());
         }
-    } else {
-        game::initialize_with_generated_puzzle(&mut game_state);
+
+        // Day rolled over or legacy data — reset streak if previous was unsolved
+        if !game_state.puzzle.solved {
+            game_state.stats.current_streak = 0;
+        }
     }
 
+    // Generate today's daily puzzle
+    game::initialize_with_daily_puzzle(&mut game_state, puzzle_number);
+    game_state.puzzle_date = Some(today);
     game::record_puzzle_played(&mut game_state);
     game::start_puzzle_timer(&mut game_state);
     persistence::save_game(&app, &game_state)?;

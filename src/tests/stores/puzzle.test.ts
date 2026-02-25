@@ -24,6 +24,7 @@ describe("puzzle store", () => {
       start: "A / B / C",
       clue: "A____ / B / C",
       solution: "ATEST / BTEST / CTEST",
+      puzzleNumber: null,
     });
     const puzzle = getPuzzle();
     expect(puzzle.key).toBe("TEST");

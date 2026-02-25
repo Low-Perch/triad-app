@@ -10,7 +10,8 @@ export const INIT_PUZZLE: Puzzle = {
     state: PuzzleState.START,
     start: 'WARE / REAF / CON',
     clue: 'WARE____ / REAF / CON',
-    solution: 'FIRMWARE / REAFFIRM / CONFIRM'
+    solution: 'FIRMWARE / REAFFIRM / CONFIRM',
+    puzzleNumber: null,
 }
 
 let puzzle = $state<Puzzle>({ ...INIT_PUZZLE })

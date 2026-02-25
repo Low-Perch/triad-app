@@ -23,6 +23,8 @@ pub struct Puzzle {
     pub solved: bool,
     pub solution: String,
     pub state: PuzzleState,
+    #[serde(default)]
+    pub puzzle_number: Option<u32>,
 }
 
 impl Default for Puzzle {
@@ -34,6 +36,7 @@ impl Default for Puzzle {
             start: "WARE / REAF / CON".to_string(),
             clue: "WARE____ / REAF / CON".to_string(),
             solution: "FIRMWARE / REAFFIRM / CONFIRM".to_string(),
+            puzzle_number: None,
         }
     }
 }
@@ -166,6 +169,8 @@ pub struct GameState {
     pub clues: Clues,
     pub keys: Keys,
     pub stats: Stats,
+    #[serde(default)]
+    pub puzzle_date: Option<String>,
 }
 
 impl Default for GameState {
@@ -176,6 +181,7 @@ impl Default for GameState {
             clues: Clues::default(),
             keys: Keys::default(),
             stats: Stats::default(),
+            puzzle_date: None,
         }
     }
 }

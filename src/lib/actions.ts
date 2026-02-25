@@ -1,7 +1,7 @@
 import * as bridge from './bridge'
 import { formatTime } from './format'
 import { setClues, getClues } from './stores/clues.svelte'
-import { setPuzzle } from './stores/puzzle.svelte'
+import { getPuzzle, setPuzzle } from './stores/puzzle.svelte'
 import { setInput } from './stores/input.svelte'
 import { setKeys } from './stores/keys.svelte'
 import { getStats, setStats } from './stores/stats.svelte'
@@ -9,9 +9,13 @@ import { getStats, setStats } from './stores/stats.svelte'
 export function generateShareText(): string {
     const clues = getClues()
     const stats = getStats()
+    const puzzle = getPuzzle()
 
     const squares = clues.clues.map(c => c.active ? '🟨' : '🟩').join('')
-    const lines = [`Triad ${squares}`]
+    const title = puzzle.puzzleNumber !== null
+        ? `Triad #${puzzle.puzzleNumber} ${squares}`
+        : `Triad ${squares}`
+    const lines = [title]
 
     const latestTime = stats.solveTimes.length > 0
         ? stats.solveTimes[stats.solveTimes.length - 1]
