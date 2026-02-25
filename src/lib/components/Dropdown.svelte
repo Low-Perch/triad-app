@@ -3,7 +3,7 @@
     import { closeModal } from '../stores/modal.svelte'
     import { getClues, setClues } from '../stores/clues.svelte'
     import { setInput } from '../stores/input.svelte'
-    import { getPuzzle, setPuzzle } from '../stores/puzzle.svelte'
+    import { setPuzzle } from '../stores/puzzle.svelte'
     import { setKeys } from '../stores/keys.svelte'
     import { getDropdown, toggleDropdown, closeDropdown } from '../stores/dropdown.svelte'
 

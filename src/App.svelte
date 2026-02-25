@@ -147,7 +147,7 @@
         <Header />
         <div class="relative">
             {#if puzzle.puzzleNumber !== null}
-                <p class="absolute -top-8 right-4 text-xs text-tone-text-sub">#{puzzle.puzzleNumber}</p>
+                <p class="absolute -top-9 right-3 text-xs text-tone-text-sub">#{puzzle.puzzleNumber}</p>
             {/if}
             <Clues text={puzzleText} />
         </div>

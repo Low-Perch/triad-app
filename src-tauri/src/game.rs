@@ -197,24 +197,21 @@ pub fn new_game(state: &mut GameState) {
     state.keys = Keys::default();
 }
 
-/// Sets up initial game state with a generated puzzle (replaces hardcoded default).
-pub fn initialize_with_generated_puzzle(state: &mut GameState) {
-    let puzzle = generator::generate_puzzle(None);
-    let key_len = puzzle.key.len();
-
-    state.puzzle = puzzle;
-    state.input.length = key_len;
-    state.input.keys = vec!["".to_string(); key_len];
-}
-
 /// Sets up initial game state with the daily puzzle for the given puzzle number.
 pub fn initialize_with_daily_puzzle(state: &mut GameState, puzzle_number: u32) {
     let puzzle = generator::generate_daily_puzzle(puzzle_number);
     let key_len = puzzle.key.len();
 
     state.puzzle = puzzle;
-    state.input.length = key_len;
-    state.input.keys = vec!["".to_string(); key_len];
+    state.input = Input {
+        length: key_len,
+        disabled: false,
+        keys: vec!["".to_string(); key_len],
+        state: InputState::Edit,
+        last_position_locked: false,
+    };
+    state.clues = Clues::default();
+    state.keys = Keys::default();
 }
 
 /// Clears input keys after incorrect guess, preserving locked last position.
