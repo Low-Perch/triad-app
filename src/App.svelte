@@ -3,9 +3,9 @@
     import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 
     import * as bridge from './lib/bridge'
-    import { generateShareText, handleNewGame } from './lib/actions'
+    import { handleNewGame } from './lib/actions'
 
-    import { getModal } from './lib/stores/modal.svelte'
+    import { getModal, openModal } from './lib/stores/modal.svelte'
     import { getKeys, setKeys } from './lib/stores/keys.svelte'
     import { setClues } from './lib/stores/clues.svelte'
     import { getPuzzle, setPuzzle } from './lib/stores/puzzle.svelte'
@@ -19,6 +19,10 @@
     import Clues from './lib/components/Clues.svelte'
     import Input from './lib/components/Input.svelte'
     import Header from './lib/components/Header.svelte'
+    import SplashScreen from './lib/components/SplashScreen.svelte'
+    import ResultScreen from './lib/components/ResultScreen.svelte'
+
+    type AppPhase = 'loading' | 'splash' | 'solved-today' | 'revealing' | 'playing' | 'congrats' | 'failed' | 'error'
 
     const appWindow = getCurrentWebviewWindow()
 
@@ -27,11 +31,10 @@
     const modal = getModal()
     const puzzle = getPuzzle()
 
-    let loading = $state(true)
-    let error = $state(false)
-    let copied = $state(false)
+    let phase = $state<AppPhase>('loading')
 
     async function handleKeyboard(e: KeyboardEvent) {
+        if (phase !== 'playing') return
         if (puzzle.solved) return
 
         const allowedKeys = ['Enter', 'Backspace', 'Delete']
@@ -50,6 +53,9 @@
                 if (result.exhausted) {
                     setInput({ ...input, keys: puzzle.key.split(''), state: result.inputState, disabled: true })
                 }
+                setTimeout(() => {
+                    phase = result.solved ? 'congrats' : 'failed'
+                }, 700)
             } else {
                 setTimeout(async () => {
                     const clearedInput = await bridge.clearInput()
@@ -66,26 +72,33 @@
         setInput(updatedInput)
     }
 
-    async function handleShare() {
-        const text = generateShareText()
-        try {
-            await navigator.clipboard.writeText(text)
-            copied = true
-            setTimeout(() => { copied = false }, 2000)
-        } catch {
-            console.error('Failed to copy to clipboard')
-        }
-    }
-
     let puzzleText = $derived(puzzle[puzzle.state])
     let disabledKeys = $derived(keys.disabledKeys)
 
     let unlistenClose: (() => void) | undefined
     let unlistenFocus: (() => void) | undefined
 
-    async function init() {
-        error = false
+    function startReveal() {
+        phase = 'revealing'
+        setTimeout(() => { phase = 'playing' }, 800)
+    }
 
+    function handleSplashDone() {
+        if (puzzle.solved) {
+            phase = 'solved-today'
+        } else if (input.keys.some(k => k !== '')) {
+            phase = 'playing'
+        } else {
+            startReveal()
+        }
+    }
+
+    async function handleNewGameFromResult() {
+        await handleNewGame()
+        startReveal()
+    }
+
+    async function init() {
         try {
             const game = await bridge.initGame()
             setPuzzle(game.puzzle)
@@ -96,8 +109,7 @@
             setGuesses(game.guesses)
         } catch (e) {
             console.error('Failed to load game state:', e)
-            error = true
-            loading = false
+            phase = 'error'
             return
         }
 
@@ -113,7 +125,7 @@
             console.error('Failed to register window event listeners:', e)
         }
 
-        loading = false
+        phase = 'splash'
     }
 
     onMount(() => {
@@ -131,64 +143,43 @@
 </script>
 
 <main class="absolute flex-col w-full h-full">
-    {#if error}
+    {#if modal.visible}
+        <Modal onpostNewGame={startReveal} />
+    {/if}
+
+    {#if phase === 'error'}
         <div class="error-screen">
             <p class="text-tone-text font-semibold">Failed to load game</p>
             <button onclick={init} class="action-btn">
                 <span class="text-sm font-semibold">Retry</span>
             </button>
         </div>
-    {:else if !loading}
-        {#if modal.visible}
-            <Modal />
-        {/if}
-
+    {:else if phase === 'splash'}
+        <SplashScreen ondone={handleSplashDone} />
+    {:else if phase === 'solved-today' || phase === 'congrats' || phase === 'failed'}
+        <ResultScreen
+            mode={phase}
+            onviewstats={() => openModal('stats')}
+            onnewgame={handleNewGameFromResult}
+            ondismiss={phase === 'solved-today' ? () => { phase = 'playing' } : undefined}
+        />
+    {:else if phase === 'revealing' || phase === 'playing'}
         <Header />
         <div class="relative">
             {#if puzzle.puzzleNumber !== null}
                 <p class="absolute -top-9 right-3 text-xs text-tone-text-sub">#{puzzle.puzzleNumber}</p>
             {/if}
-            <Clues text={puzzleText} />
+            <Clues text={puzzleText} revealing={phase === 'revealing'} />
         </div>
-        <Input />
-
-        {#if puzzle.solved}
-            <div class="post-solve">
-                <div class="post-solve-actions">
-                    <button onclick={handleNewGame} class="action-btn">
-                        <span class="text-sm font-semibold">Next</span>
-                    </button>
-                    <button onclick={handleShare} class="action-btn">
-                        <span class="text-sm font-semibold">{copied ? 'Copied!' : 'Share'}</span>
-                    </button>
-                </div>
-            </div>
-        {:else}
-            <p class="guess-counter">{getGuesses()}/6</p>
+        <Input revealing={phase === 'revealing'} />
+        <p class="guess-counter">{getGuesses()}/6</p>
+        {#if !puzzle.solved}
             <Keys {disabledKeys} />
         {/if}
     {/if}
 </main>
 
 <style>
-    .post-solve {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.75rem;
-    }
-
-    .solve-time {
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: var(--tone-text-sub);
-    }
-
-    .post-solve-actions {
-        display: flex;
-        gap: 0.75rem;
-    }
-
     .action-btn {
         display: inline-flex;
         align-items: center;

@@ -3,6 +3,8 @@
     import { getPuzzle } from '../stores/puzzle.svelte'
     import { getInput, InputState } from '../stores/input.svelte'
 
+    let { revealing = false }: { revealing?: boolean } = $props()
+
     const input = getInput()
     const puzzle = getPuzzle()
 
@@ -17,7 +19,9 @@
             class:solved={correct}
             class:shake={incorrect}
             class:filled={key !== ''}
+            class:tile-reveal={revealing}
             class="tile"
+            style={revealing ? `--tile-index: ${i}` : ''}
         >
             <p class="text-tone-text uppercase text-3xl font-bold">{key}</p>
 
@@ -62,5 +66,16 @@
         50% { transform: translateX(7px) }
         75% { transform: translateX(-7px) }
         to { transform: translateX(0) }
+    }
+
+    .tile-reveal {
+        opacity: 0;
+        animation: tileSlideUp 0.3s ease-out forwards;
+        animation-delay: calc(var(--tile-index, 0) * 100ms);
+    }
+
+    @keyframes tileSlideUp {
+        0% { opacity: 0; transform: translateY(20px); }
+        100% { opacity: 1; transform: translateY(0); }
     }
 </style>

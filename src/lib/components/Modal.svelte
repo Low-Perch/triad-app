@@ -3,6 +3,9 @@
     import Stats from '../views/Stats.svelte'
 
     import { closeModal, getModal } from '../stores/modal.svelte'
+
+    let { onpostNewGame }: { onpostNewGame?: () => void } = $props()
+
     const modal = getModal()
 
     function handleKey(evt: KeyboardEvent) {
@@ -32,7 +35,7 @@
         {#if modal?.view == "info"}
             <Info />
         {:else if modal?.view == "stats"}
-            <Stats />
+            <Stats {onpostNewGame} />
         {/if}
     </div>
 </div>

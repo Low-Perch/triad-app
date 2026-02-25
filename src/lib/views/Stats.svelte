@@ -4,6 +4,8 @@
     import { getStats, getSolveRate, getGuessDistribution } from '../stores/stats.svelte'
     import { getPuzzle } from '../stores/puzzle.svelte'
 
+    let { onpostNewGame }: { onpostNewGame?: () => void } = $props()
+
     const stats = getStats()
     const puzzle = getPuzzle()
 
@@ -29,6 +31,7 @@
     async function handleNewGame() {
         await newGame()
         closeModal()
+        onpostNewGame?.()
     }
 </script>
 
