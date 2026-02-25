@@ -1,8 +1,8 @@
 [package]
 name = "triad"
 version = "0.0.0"
-description = "A Tauri App"
-authors = ["you"]
+description = "A desktop word-puzzle game where players find a key that completes multiple words"
+authors = ["cdrani"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

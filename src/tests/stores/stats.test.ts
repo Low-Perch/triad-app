@@ -13,6 +13,7 @@ describe("stats store", () => {
     expect(stats.played).toBe(0);
     expect(stats.solved).toBe(0);
     expect(stats.currentStreak).toBe(0);
+    expect(stats.bestStreak).toBe(0);
     expect(stats.bestTime).toBeNull();
     expect(stats.solveTimes).toEqual([]);
     expect(stats.startedAt).toBeNull();
@@ -59,6 +60,7 @@ describe("stats store", () => {
         played: 10,
         solved: 8,
         currentStreak: 3,
+        bestStreak: 5,
         bestTime: 5,
         solveTimes: [5, 10, 15],
         startedAt: null,
@@ -66,6 +68,7 @@ describe("stats store", () => {
       const stats = getStats();
       expect(stats.played).toBe(10);
       expect(stats.solved).toBe(8);
+      expect(stats.bestStreak).toBe(5);
       expect(stats.bestTime).toBe(5);
     });
 

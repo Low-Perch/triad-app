@@ -43,9 +43,9 @@ describe("modal store", () => {
   });
 
   it("sets full modal state via setModal", () => {
-    setModal({ visible: true, view: "support" });
+    setModal({ visible: true, view: "stats" });
     const modal = getModal();
     expect(modal.visible).toBe(true);
-    expect(modal.view).toBe("support");
+    expect(modal.view).toBe("stats");
   });
 });

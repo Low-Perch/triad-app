@@ -6,6 +6,7 @@ export const INIT_STATS: Stats = {
     played: 0,
     solved: 0,
     currentStreak: 0,
+    bestStreak: 0,
     bestTime: null,
     solveTimes: [],
     startedAt: null,

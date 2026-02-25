@@ -1,37 +1,18 @@
 <script lang="ts">
-    import * as bridge from '../bridge'
+    import { formatTime } from '../format'
+    import { generateShareText, handleNewGame as newGame } from '../actions'
     import { closeModal } from '../stores/modal.svelte'
-    import { getStats, setStats, getSolveRate, getTimeBuckets } from '../stores/stats.svelte'
-    import { getClues, setClues } from '../stores/clues.svelte'
-    import { getPuzzle, setPuzzle } from '../stores/puzzle.svelte'
-    import { setInput } from '../stores/input.svelte'
-    import { setKeys } from '../stores/keys.svelte'
+    import { getStats, getSolveRate, getTimeBuckets } from '../stores/stats.svelte'
+    import { getPuzzle } from '../stores/puzzle.svelte'
 
     const stats = getStats()
-    const clues = getClues()
     const puzzle = getPuzzle()
 
     let solveRate = $derived(getSolveRate())
     let buckets = $derived(getTimeBuckets())
-    let bestTimeDisplay = $derived(stats.bestTime !== null ? `${stats.bestTime}s` : '-')
+    let bestTimeDisplay = $derived(stats.bestTime !== null ? formatTime(stats.bestTime) : '-')
 
     let copied = $state(false)
-
-    function generateShareText(): string {
-        const squares = clues.clues.map(c => c.active ? '🟨' : '🟩').join('')
-        const lines = [`Triad ${squares}`]
-
-        const latestTime = stats.solveTimes.length > 0
-            ? stats.solveTimes[stats.solveTimes.length - 1]
-            : null
-
-        const parts: string[] = []
-        if (latestTime !== null) parts.push(`⏱️ ${latestTime}s`)
-        if (stats.currentStreak > 0) parts.push(`🔥 ${stats.currentStreak}`)
-        if (parts.length > 0) lines.push(parts.join(' | '))
-
-        return lines.join('\n')
-    }
 
     async function handleShare() {
         if (!puzzle.solved) return
@@ -47,12 +28,7 @@
     }
 
     async function handleNewGame() {
-        const game = await bridge.newGame()
-        setPuzzle(game.puzzle)
-        setClues(game.clues)
-        setInput(game.input)
-        setKeys(game.keys)
-        setStats(game.stats)
+        await newGame()
         closeModal()
     }
 </script>
@@ -79,6 +55,11 @@
         <div class="flex-col text-center">
             <p class="text-xl font-bold">{stats.currentStreak}</p>
             <p class="text-xs text-tone-text-sub">Streak</p>
+        </div>
+
+        <div class="flex-col text-center">
+            <p class="text-xl font-bold">{stats.bestStreak}</p>
+            <p class="text-xs text-tone-text-sub">Best Streak</p>
         </div>
 
         <div class="flex-col text-center">

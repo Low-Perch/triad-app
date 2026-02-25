@@ -36,6 +36,7 @@ export type Stats = {
     played: number
     solved: number
     currentStreak: number
+    bestStreak: number
     bestTime: number | null
     solveTimes: number[]
     startedAt: number | null

@@ -143,9 +143,15 @@ pub fn record_puzzle_played(state: &mut GameState) {
 pub fn record_puzzle_solved(state: &mut GameState) {
     state.stats.solved += 1;
     state.stats.current_streak += 1;
+    if state.stats.current_streak > state.stats.best_streak {
+        state.stats.best_streak = state.stats.current_streak;
+    }
 
     if let Some(started_at) = state.stats.started_at {
         let elapsed = (now_millis() - started_at) / 1000;
+        if state.stats.solve_times.len() >= 100 {
+            state.stats.solve_times.remove(0);
+        }
         state.stats.solve_times.push(elapsed);
         state.stats.best_time = Some(match state.stats.best_time {
             Some(best) if best <= elapsed => best,
@@ -168,7 +174,12 @@ pub fn mark_puzzle_solved(state: &mut GameState) {
 // --- Game lifecycle ---
 
 /// Resets game state for a new puzzle while preserving stats.
+/// If the previous puzzle was not solved, resets the current streak.
 pub fn new_game(state: &mut GameState) {
+    if !state.puzzle.solved {
+        state.stats.current_streak = 0;
+    }
+
     let previous_key = state.puzzle.key.to_lowercase();
 
     let puzzle = generator::generate_puzzle(Some(&previous_key));
@@ -517,6 +528,27 @@ mod tests {
     }
 
     #[test]
+    fn record_puzzle_solved_tracks_best_streak() {
+        let mut state = default_state();
+
+        // Solve 3 in a row
+        record_puzzle_solved(&mut state);
+        record_puzzle_solved(&mut state);
+        record_puzzle_solved(&mut state);
+        assert_eq!(state.stats.current_streak, 3);
+        assert_eq!(state.stats.best_streak, 3);
+
+        // Reset streak (simulate skipping a puzzle)
+        state.stats.current_streak = 0;
+
+        // Solve 2 more — best streak should remain 3
+        record_puzzle_solved(&mut state);
+        record_puzzle_solved(&mut state);
+        assert_eq!(state.stats.current_streak, 2);
+        assert_eq!(state.stats.best_streak, 3);
+    }
+
+    #[test]
     fn record_puzzle_solved_records_time() {
         let mut state = default_state();
         // Simulate timer started 5 seconds ago
@@ -617,6 +649,28 @@ mod tests {
         let key_len = state.puzzle.key.len();
         assert_eq!(state.input.length, key_len);
         assert_eq!(state.input.keys.len(), key_len);
+    }
+
+    #[test]
+    fn new_game_resets_streak_when_unsolved() {
+        let mut state = default_state();
+        state.stats.current_streak = 5;
+        state.puzzle.solved = false;
+
+        new_game(&mut state);
+
+        assert_eq!(state.stats.current_streak, 0);
+    }
+
+    #[test]
+    fn new_game_preserves_streak_when_solved() {
+        let mut state = default_state();
+        state.stats.current_streak = 5;
+        state.puzzle.solved = true;
+
+        new_game(&mut state);
+
+        assert_eq!(state.stats.current_streak, 5);
     }
 
     #[test]

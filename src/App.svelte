@@ -3,10 +3,12 @@
     import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 
     import * as bridge from './lib/bridge'
+    import { formatTime } from './lib/format'
+    import { generateShareText, handleNewGame } from './lib/actions'
 
     import { getModal } from './lib/stores/modal.svelte'
     import { getKeys, setKeys } from './lib/stores/keys.svelte'
-    import { getClues, setClues } from './lib/stores/clues.svelte'
+    import { setClues } from './lib/stores/clues.svelte'
     import { getPuzzle, setPuzzle } from './lib/stores/puzzle.svelte'
     import { setInput, getInput } from './lib/stores/input.svelte'
     import { getStats, setStats } from './lib/stores/stats.svelte'
@@ -26,9 +28,9 @@
     const puzzle = getPuzzle()
 
     const stats = getStats()
-    const clues = getClues()
 
     let loading = $state(true)
+    let error = $state(false)
     let copied = $state(false)
 
     async function handleKeyboard(e: KeyboardEvent) {
@@ -62,22 +64,6 @@
         setInput(updatedInput)
     }
 
-    function generateShareText(): string {
-        const squares = clues.clues.map(c => c.active ? '🟨' : '🟩').join('')
-        const lines = [`Triad ${squares}`]
-
-        const latestTime = stats.solveTimes.length > 0
-            ? stats.solveTimes[stats.solveTimes.length - 1]
-            : null
-
-        const parts: string[] = []
-        if (latestTime !== null) parts.push(`⏱️ ${latestTime}s`)
-        if (stats.currentStreak > 0) parts.push(`🔥 ${stats.currentStreak}`)
-        if (parts.length > 0) lines.push(parts.join(' | '))
-
-        return lines.join('\n')
-    }
-
     async function handleShare() {
         const text = generateShareText()
         try {
@@ -89,30 +75,19 @@
         }
     }
 
-    async function handleNewGame() {
-        const game = await bridge.newGame()
-        setPuzzle(game.puzzle)
-        setClues(game.clues)
-        setInput(game.input)
-        setKeys(game.keys)
-        setStats(game.stats)
-    }
-
     let puzzleText = $derived(puzzle[puzzle.state])
     let disabledKeys = $derived(keys.disabledKeys)
     let solveTimeDisplay = $derived.by(() => {
         if (stats.solveTimes.length === 0) return null
-        const t = stats.solveTimes[stats.solveTimes.length - 1]
-        if (t < 60) return `${t}s`
-        const mins = Math.floor(t / 60)
-        const secs = t % 60
-        return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`
+        return formatTime(stats.solveTimes[stats.solveTimes.length - 1])
     })
 
     let unlistenClose: (() => void) | undefined
     let unlistenFocus: (() => void) | undefined
 
     async function init() {
+        error = false
+
         try {
             const game = await bridge.initGame()
             setPuzzle(game.puzzle)
@@ -120,8 +95,11 @@
             setInput(game.input)
             setKeys(game.keys)
             setStats(game.stats)
-        } catch (error) {
-            console.error('Failed to load game state, using defaults:', error)
+        } catch (e) {
+            console.error('Failed to load game state:', e)
+            error = true
+            loading = false
+            return
         }
 
         try {
@@ -132,8 +110,8 @@
             unlistenFocus = await appWindow.onFocusChanged(async () => {
                 await bridge.saveGame()
             })
-        } catch (error) {
-            console.error('Failed to register window event listeners:', error)
+        } catch (e) {
+            console.error('Failed to register window event listeners:', e)
         }
 
         loading = false
@@ -154,7 +132,14 @@
 </script>
 
 <main class="absolute flex-col w-full h-full">
-    {#if !loading}
+    {#if error}
+        <div class="error-screen">
+            <p class="text-tone-text font-semibold">Failed to load game</p>
+            <button onclick={init} class="action-btn">
+                <span class="text-sm font-semibold">Retry</span>
+            </button>
+        </div>
+    {:else if !loading}
         {#if modal.visible}
             <Modal />
         {/if}
@@ -217,5 +202,14 @@
 
     .action-btn:hover {
         opacity: 0.9;
+    }
+
+    .error-screen {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        gap: 1rem;
     }
 </style>

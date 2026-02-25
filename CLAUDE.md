@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Triad is a desktop word-puzzle game built with **Tauri v2 + Svelte 5 + TypeScript**. It runs as a system tray application — the window is non-resizable (400x500), undecorated, always-on-top, and toggled via tray icon click. Players find a 4-letter key that completes multiple clue words simultaneously.
+Triad is a desktop word-puzzle game built with **Tauri v2 + Svelte 5 + TypeScript**. It runs as a system tray application — the window is non-resizable (350x500), undecorated, always-on-top, and toggled via tray icon click. Players find a 4-letter key that completes multiple clue words simultaneously.
 
 ## Commands
 
