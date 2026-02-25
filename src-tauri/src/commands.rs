@@ -86,11 +86,13 @@ pub fn submit_solution(
 ) -> Result<SubmitResult, String> {
     let mut game_state = state.lock().map_err(|e| e.to_string())?;
 
-    let solved = game::submit_solution(&mut game_state);
+    let (solved, exhausted) = game::submit_solution(&mut game_state);
     persistence::save_game(&app, &game_state)?;
 
     Ok(SubmitResult {
         solved,
+        exhausted,
+        guesses: game_state.guesses,
         input_state: game_state.input.state.clone(),
         puzzle_state: game_state.puzzle.state.clone(),
         stats: game_state.stats.clone(),
@@ -109,11 +111,18 @@ pub fn activate_clue(
     game::apply_clue_effects(&mut game_state, &clue_id);
     persistence::save_game(&app, &game_state)?;
 
+    let stats = if clue_id == "solve" {
+        Some(game_state.stats.clone())
+    } else {
+        None
+    };
+
     Ok(ClueResult {
         clues: game_state.clues.clone(),
         input: game_state.input.clone(),
         puzzle: game_state.puzzle.clone(),
         keys: game_state.keys.clone(),
+        stats,
     })
 }
 

@@ -41,6 +41,8 @@ export type Stats = {
     bestTime: number | null
     solveTimes: number[]
     startedAt: number | null
+    guessDistribution: number[]
+    solveClueCount: number
 }
 
 export type GameState = {
@@ -50,10 +52,13 @@ export type GameState = {
     keys: Keys
     stats: Stats
     puzzleDate: string | null
+    guesses: number
 }
 
 export type SubmitResult = {
     solved: boolean
+    exhausted: boolean
+    guesses: number
     inputState: InputState
     puzzleState: PuzzleState
     stats: Stats
@@ -64,4 +69,5 @@ export type ClueResult = {
     input: Input
     puzzle: Puzzle
     keys: Keys
+    stats: Stats | null
 }

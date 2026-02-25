@@ -12,6 +12,7 @@
     import { getPuzzle, setPuzzle } from './lib/stores/puzzle.svelte'
     import { setInput, getInput } from './lib/stores/input.svelte'
     import { getStats, setStats } from './lib/stores/stats.svelte'
+    import { getGuesses, setGuesses } from './lib/stores/guesses.svelte'
     import { initTheme } from './lib/stores/theme.svelte'
 
     import Keys from './lib/components/Keys.svelte'
@@ -46,8 +47,12 @@
             const result = await bridge.submitSolution()
             setInput({ ...input, state: result.inputState })
             setStats(result.stats)
-            if (result.solved) {
+            setGuesses(result.guesses)
+            if (result.solved || result.exhausted) {
                 setPuzzle({ ...puzzle, solved: true, state: result.puzzleState })
+                if (result.exhausted) {
+                    setInput({ ...input, keys: puzzle.key.split(''), state: result.inputState, disabled: true })
+                }
             } else {
                 setTimeout(async () => {
                     const clearedInput = await bridge.clearInput()
@@ -95,6 +100,7 @@
             setInput(game.input)
             setKeys(game.keys)
             setStats(game.stats)
+            setGuesses(game.guesses)
         } catch (e) {
             console.error('Failed to load game state:', e)
             error = true
@@ -168,6 +174,7 @@
                 </div>
             </div>
         {:else}
+            <p class="guess-counter">{getGuesses()}/6</p>
             <Keys {disabledKeys} />
         {/if}
     {/if}
@@ -207,6 +214,14 @@
 
     .action-btn:hover {
         opacity: 0.9;
+    }
+
+    .guess-counter {
+        text-align: center;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--tone-text-sub);
+        margin-bottom: 0.25rem;
     }
 
     .error-screen {

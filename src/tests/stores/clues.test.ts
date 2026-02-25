@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import {
-  getClues, setClues, getKeyLocked, INIT_CLUES,
+  getClues, setClues, getKeyLocked, getSolveClueAvailable, INIT_CLUES,
 } from "../../lib/stores/clues.svelte";
 
 describe("clues store", () => {
@@ -8,12 +8,18 @@ describe("clues store", () => {
     setClues(structuredClone(INIT_CLUES));
   });
 
-  it("initializes with 3 inactive clues", () => {
+  it("initializes with 4 inactive clues", () => {
     const clues = getClues();
-    expect(clues.clues).toHaveLength(3);
+    expect(clues.clues).toHaveLength(4);
     expect(clues.clues.every((c) => !c.active)).toBe(true);
     expect(clues.used).toBe(0);
     expect(clues.available).toBe(true);
+  });
+
+  it("has solve clue as the 4th clue", () => {
+    const clues = getClues();
+    expect(clues.clues[3].id).toBe("solve");
+    expect(clues.clues[3].note).toBe("Reveal answer");
   });
 
   describe("getKeyLocked", () => {
@@ -36,6 +42,37 @@ describe("clues store", () => {
       cluesState.used = 2;
       setClues(cluesState);
       expect(getKeyLocked()).toBe(false);
+    });
+  });
+
+  describe("getSolveClueAvailable", () => {
+    it("returns false when fewer than 3 clues used", () => {
+      const cluesState = structuredClone(INIT_CLUES);
+      cluesState.clues[0].active = true;
+      cluesState.used = 1;
+      setClues(cluesState);
+      expect(getSolveClueAvailable()).toBe(false);
+    });
+
+    it("returns true when all 3 standard clues used", () => {
+      const cluesState = structuredClone(INIT_CLUES);
+      cluesState.clues[0].active = true;
+      cluesState.clues[1].active = true;
+      cluesState.clues[2].active = true;
+      cluesState.used = 3;
+      setClues(cluesState);
+      expect(getSolveClueAvailable()).toBe(true);
+    });
+
+    it("returns false when solve clue already used", () => {
+      const cluesState = structuredClone(INIT_CLUES);
+      cluesState.clues[0].active = true;
+      cluesState.clues[1].active = true;
+      cluesState.clues[2].active = true;
+      cluesState.clues[3].active = true;
+      cluesState.used = 4;
+      setClues(cluesState);
+      expect(getSolveClueAvailable()).toBe(false);
     });
   });
 

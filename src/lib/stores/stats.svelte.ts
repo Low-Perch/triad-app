@@ -10,6 +10,8 @@ export const INIT_STATS: Stats = {
     bestTime: null,
     solveTimes: [],
     startedAt: null,
+    guessDistribution: [0, 0, 0, 0, 0, 0],
+    solveClueCount: 0,
 }
 
 let stats = $state<Stats>({ ...INIT_STATS })
@@ -25,6 +27,20 @@ export function setStats(state: Stats) {
 export function getSolveRate(): number {
     if (stats.played === 0) return 0
     return Math.round((stats.solved / stats.played) * 100)
+}
+
+export function getGuessDistribution(): { label: string; count: number }[] {
+    const dist = stats.guessDistribution?.length === 6
+        ? stats.guessDistribution
+        : [0, 0, 0, 0, 0, 0]
+    return [
+        { label: '1', count: dist[0] },
+        { label: '2', count: dist[1] },
+        { label: '3', count: dist[2] },
+        { label: '4', count: dist[3] },
+        { label: '5', count: dist[4] },
+        { label: '6', count: dist[5] },
+    ]
 }
 
 export function getTimeBuckets(): { under10: number; under30: number; under60: number; over60: number } {

@@ -64,6 +64,8 @@ describe("stats store", () => {
         bestTime: 5,
         solveTimes: [5, 10, 15],
         startedAt: null,
+        guessDistribution: [1, 2, 3, 1, 1, 0],
+        solveClueCount: 0,
       });
       const stats = getStats();
       expect(stats.played).toBe(10);

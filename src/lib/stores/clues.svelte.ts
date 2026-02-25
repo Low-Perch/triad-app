@@ -6,7 +6,8 @@ export const INIT_CLUES: Clues = {
     clues: [
         { id: 'position', active: false, note: 'Reveal 1 position' },
         { id: 'letter', active: false, note: 'Reveal last letter' },
-        { id: '50/50', active: false, note: '50/50' }
+        { id: '50/50', active: false, note: '50/50' },
+        { id: 'solve', active: false, note: 'Reveal answer' }
     ],
     used: 0,
     available: true
@@ -30,4 +31,13 @@ const _keyLocked = $derived.by(() => {
 
 export function getKeyLocked(): boolean {
     return _keyLocked
+}
+
+const _solveClueAvailable = $derived.by(() => {
+    const solveClue = clues.clues.find(({ id }) => id === 'solve')
+    return clues.used >= 3 && !!solveClue && !solveClue.active
+})
+
+export function getSolveClueAvailable(): boolean {
+    return _solveClueAvailable
 }

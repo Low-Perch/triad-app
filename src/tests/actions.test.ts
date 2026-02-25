@@ -3,17 +3,20 @@ import { generateShareText } from "../lib/actions";
 import { setPuzzle, INIT_PUZZLE } from "../lib/stores/puzzle.svelte";
 import { setClues, INIT_CLUES } from "../lib/stores/clues.svelte";
 import { setStats, INIT_STATS } from "../lib/stores/stats.svelte";
+import { setGuesses } from "../lib/stores/guesses.svelte";
 
 describe("generateShareText", () => {
   beforeEach(() => {
     setPuzzle({ ...INIT_PUZZLE });
     setClues(structuredClone(INIT_CLUES));
     setStats({ ...INIT_STATS, solveTimes: [] });
+    setGuesses(0);
   });
 
-  it("returns title with all green squares when no clues used", () => {
+  it("returns title with all green squares and guess count", () => {
+    setGuesses(2);
     const text = generateShareText();
-    expect(text).toBe("Triad 🟩🟩🟩");
+    expect(text).toBe("Triad 🟩🟩🟩🟩 2/6");
   });
 
   it("shows yellow squares for active (used) clues", () => {
@@ -22,15 +25,31 @@ describe("generateShareText", () => {
     cluesState.clues[2].active = true;
     cluesState.used = 2;
     setClues(cluesState);
+    setGuesses(3);
 
     const text = generateShareText();
-    expect(text).toBe("Triad 🟨🟩🟨");
+    expect(text).toBe("Triad 🟨🟩🟨🟩 3/6");
+  });
+
+  it("shows X/6 when solve clue is used", () => {
+    const cluesState = structuredClone(INIT_CLUES);
+    cluesState.clues[0].active = true;
+    cluesState.clues[1].active = true;
+    cluesState.clues[2].active = true;
+    cluesState.clues[3].active = true;
+    cluesState.used = 4;
+    setClues(cluesState);
+    setGuesses(4);
+
+    const text = generateShareText();
+    expect(text).toBe("Triad 🟨🟨🟨⬛ X/6");
   });
 
   it("includes puzzle number for daily puzzles", () => {
     setPuzzle({ ...INIT_PUZZLE, puzzleNumber: 42 });
+    setGuesses(1);
     const text = generateShareText();
-    expect(text).toBe("Triad #42 🟩🟩🟩");
+    expect(text).toBe("Triad #42 🟩🟩🟩🟩 1/6");
   });
 
   it("omits puzzle number for free-play puzzles", () => {
@@ -85,10 +104,11 @@ describe("generateShareText", () => {
     cluesState.used = 1;
     setClues(cluesState);
     setStats({ ...INIT_STATS, currentStreak: 2, solveTimes: [33] });
+    setGuesses(3);
 
     const text = generateShareText();
     const lines = text.split("\n");
-    expect(lines[0]).toBe("Triad #7 🟩🟨🟩");
+    expect(lines[0]).toBe("Triad #7 🟩🟨🟩🟩 3/6");
     expect(lines[1]).toBe("⏱️ 33s | 🔥 2");
   });
 });

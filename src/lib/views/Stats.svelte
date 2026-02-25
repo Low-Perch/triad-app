@@ -2,7 +2,7 @@
     import { formatTime } from '../format'
     import { generateShareText, handleNewGame as newGame } from '../actions'
     import { closeModal } from '../stores/modal.svelte'
-    import { getStats, getSolveRate, getTimeBuckets } from '../stores/stats.svelte'
+    import { getStats, getSolveRate, getTimeBuckets, getGuessDistribution } from '../stores/stats.svelte'
     import { getPuzzle } from '../stores/puzzle.svelte'
 
     const stats = getStats()
@@ -10,6 +10,8 @@
 
     let solveRate = $derived(getSolveRate())
     let buckets = $derived(getTimeBuckets())
+    let distribution = $derived(getGuessDistribution())
+    let maxDistCount = $derived(Math.max(...distribution.map(d => d.count), 1))
     let bestTimeDisplay = $derived(stats.bestTime !== null ? formatTime(stats.bestTime) : '-')
 
     let copied = $state(false)
@@ -70,6 +72,29 @@
 
     <hr class="w-full border-tone-border" />
 
+    <div class="flex-col w-full">
+        <p class="text-center font-semibold text-sm mb-2">Guess Distribution</p>
+        <div class="dist-chart">
+            {#each distribution as row}
+                <div class="dist-row">
+                    <span class="dist-label">{row.label}</span>
+                    <div class="dist-bar-bg">
+                        <div
+                            class="dist-bar"
+                            style="width: {Math.max(row.count / maxDistCount * 100, row.count > 0 ? 8 : 0)}%"
+                        >
+                            {#if row.count > 0}
+                                <span class="dist-count">{row.count}</span>
+                            {/if}
+                        </div>
+                    </div>
+                </div>
+            {/each}
+        </div>
+    </div>
+
+    <hr class="w-full border-tone-border" />
+
     <div class="flex-col justify-between w-full gap-y-4">
         <p class="text-center font-semibold text-sm">Solve Times</p>
 
@@ -110,6 +135,50 @@
 </div>
 
 <style>
+    .dist-chart {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .dist-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .dist-label {
+        width: 0.75rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-align: right;
+        flex-shrink: 0;
+    }
+
+    .dist-bar-bg {
+        flex: 1;
+        height: 1.25rem;
+        border-radius: 2px;
+    }
+
+    .dist-bar {
+        height: 100%;
+        background-color: var(--tone-correct);
+        border-radius: 2px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding-right: 0.375rem;
+        min-width: 0;
+        transition: width 0.3s;
+    }
+
+    .dist-count {
+        font-size: 0.625rem;
+        font-weight: 700;
+        color: #ffffff;
+    }
+
     .primary-btn {
         display: inline-flex;
         align-items: center;

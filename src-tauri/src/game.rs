@@ -50,7 +50,10 @@ pub fn valid_solution(input_keys: &[String], puzzle_key: &str) -> bool {
     user_input == puzzle_key
 }
 
-pub fn submit_solution(state: &mut GameState) -> bool {
+pub const MAX_GUESSES: u32 = 6;
+
+pub fn submit_solution(state: &mut GameState) -> (bool, bool) {
+    state.guesses += 1;
     let solved = valid_solution(&state.input.keys, &state.puzzle.key);
 
     if solved {
@@ -58,11 +61,34 @@ pub fn submit_solution(state: &mut GameState) -> bool {
         mark_puzzle_solved(state);
         update_puzzle_state(state, PuzzleState::Solution);
         record_puzzle_solved(state);
+        record_guess_distribution(state);
+        return (true, false);
+    }
+
+    let exhausted = state.guesses >= MAX_GUESSES;
+    if exhausted {
+        // Show the answer and count as a loss
+        let key_chars: Vec<String> = state.puzzle.key.chars().map(|c| c.to_string()).collect();
+        state.input.keys = key_chars;
+        state.input.state = InputState::Correct;
+        state.input.disabled = true;
+        mark_puzzle_solved(state);
+        update_puzzle_state(state, PuzzleState::Solution);
+        state.stats.current_streak = 0;
+        state.stats.started_at = None;
     } else {
         state.input.state = InputState::Incorrect;
     }
 
-    solved
+    (false, exhausted)
+}
+
+pub fn record_guess_distribution(state: &mut GameState) {
+    let bucket = std::cmp::min(state.guesses as usize - 1, 5);
+    while state.stats.guess_distribution.len() < 6 {
+        state.stats.guess_distribution.push(0);
+    }
+    state.stats.guess_distribution[bucket] += 1;
 }
 
 // --- Clue operations ---
@@ -75,9 +101,14 @@ pub fn activate_clue(state: &mut GameState, clue_id: &str) {
             return;
         }
 
+        // Solve clue requires all other clues to be used first
+        if clue_id == "solve" && state.clues.used < 3 {
+            return;
+        }
+
         state.clues.clues[idx].active = true;
         state.clues.used += 1;
-        state.clues.available = state.clues.used != 3;
+        state.clues.available = state.clues.used < 4;
     }
 }
 
@@ -99,8 +130,26 @@ pub fn apply_clue_effects(state: &mut GameState, clue_id: &str) {
         "50/50" => {
             disable_keys(state);
         }
+        "solve" => {
+            solve_puzzle(state);
+        }
         _ => {}
     }
+}
+
+pub fn solve_puzzle(state: &mut GameState) {
+    let key_chars: Vec<String> = state.puzzle.key.chars().map(|c| c.to_string()).collect();
+    state.input.keys = key_chars;
+    state.input.state = InputState::Correct;
+    state.input.disabled = true;
+
+    mark_puzzle_solved(state);
+    update_puzzle_state(state, PuzzleState::Solution);
+
+    // Counts as a loss — reset streak, no solved++
+    state.stats.current_streak = 0;
+    state.stats.solve_clue_count += 1;
+    state.stats.started_at = None;
 }
 
 // --- Keys operations ---
@@ -195,6 +244,7 @@ pub fn new_game(state: &mut GameState) {
     };
     state.clues = Clues::default();
     state.keys = Keys::default();
+    state.guesses = 0;
 }
 
 /// Sets up initial game state with the daily puzzle for the given puzzle number.
@@ -212,6 +262,7 @@ pub fn initialize_with_daily_puzzle(state: &mut GameState, puzzle_number: u32) {
     };
     state.clues = Clues::default();
     state.keys = Keys::default();
+    state.guesses = 0;
 }
 
 /// Clears input keys after incorrect guess, preserving locked last position.
@@ -306,12 +357,15 @@ mod tests {
             .map(String::from)
             .collect();
 
-        let solved = submit_solution(&mut state);
+        let (solved, exhausted) = submit_solution(&mut state);
         assert!(solved);
+        assert!(!exhausted);
+        assert_eq!(state.guesses, 1);
         assert_eq!(state.input.state, InputState::Correct);
         assert!(state.puzzle.solved);
         assert_eq!(state.puzzle.state, PuzzleState::Solution);
         assert_eq!(state.stats.solved, 1);
+        assert_eq!(state.stats.guess_distribution[0], 1); // bucket 0 = 1 guess
     }
 
     #[test]
@@ -322,11 +376,71 @@ mod tests {
             .map(String::from)
             .collect();
 
-        let solved = submit_solution(&mut state);
+        let (solved, exhausted) = submit_solution(&mut state);
         assert!(!solved);
+        assert!(!exhausted);
+        assert_eq!(state.guesses, 1);
         assert_eq!(state.input.state, InputState::Incorrect);
         assert!(!state.puzzle.solved);
         assert_eq!(state.stats.solved, 0);
+    }
+
+    #[test]
+    fn submit_solution_exhausted_after_six() {
+        let mut state = default_state();
+        let wrong: Vec<String> = vec!["X", "Y", "Z", "W"].into_iter().map(String::from).collect();
+
+        for i in 0..5 {
+            state.input.keys = wrong.clone();
+            let (solved, exhausted) = submit_solution(&mut state);
+            assert!(!solved);
+            assert!(!exhausted, "should not be exhausted at guess {}", i + 1);
+            state.input.state = InputState::Edit; // simulate clear
+        }
+
+        // 6th guess — exhausted
+        state.input.keys = wrong;
+        let (solved, exhausted) = submit_solution(&mut state);
+        assert!(!solved);
+        assert!(exhausted);
+        assert_eq!(state.guesses, 6);
+        assert!(state.puzzle.solved); // marked solved to show answer
+        assert_eq!(state.stats.current_streak, 0);
+        assert_eq!(state.stats.solved, 0); // not counted as solved
+    }
+
+    #[test]
+    fn submit_solution_increments_guesses() {
+        let mut state = default_state();
+        let wrong: Vec<String> = vec!["X", "Y", "Z", "W"].into_iter().map(String::from).collect();
+
+        state.input.keys = wrong.clone();
+        submit_solution(&mut state);
+        assert_eq!(state.guesses, 1);
+
+        state.input.keys = wrong;
+        state.input.state = InputState::Edit;
+        submit_solution(&mut state);
+        assert_eq!(state.guesses, 2);
+    }
+
+    #[test]
+    fn guess_distribution_correct_bucket() {
+        let mut state = default_state();
+        let wrong: Vec<String> = vec!["X", "Y", "Z", "W"].into_iter().map(String::from).collect();
+        let correct: Vec<String> = vec!["F", "I", "R", "M"].into_iter().map(String::from).collect();
+
+        // 2 wrong then correct = 3 guesses → bucket index 2
+        state.input.keys = wrong.clone();
+        submit_solution(&mut state);
+        state.input.keys = wrong;
+        state.input.state = InputState::Edit;
+        submit_solution(&mut state);
+        state.input.keys = correct;
+        state.input.state = InputState::Edit;
+        submit_solution(&mut state);
+
+        assert_eq!(state.stats.guess_distribution[2], 1); // bucket 2 = 3 guesses
     }
 
     // --- add_key / remove_key tests ---
@@ -438,13 +552,51 @@ mod tests {
     }
 
     #[test]
-    fn activate_clue_unavailable_after_three() {
+    fn activate_clue_available_after_three() {
         let mut state = default_state();
         activate_clue(&mut state, "position");
         activate_clue(&mut state, "letter");
         activate_clue(&mut state, "50/50");
-        assert!(!state.clues.available);
+        assert!(state.clues.available); // solve clue still available
         assert_eq!(state.clues.used, 3);
+    }
+
+    #[test]
+    fn activate_clue_unavailable_after_four() {
+        let mut state = default_state();
+        activate_clue(&mut state, "position");
+        activate_clue(&mut state, "letter");
+        activate_clue(&mut state, "50/50");
+        activate_clue(&mut state, "solve");
+        assert!(!state.clues.available);
+        assert_eq!(state.clues.used, 4);
+    }
+
+    #[test]
+    fn activate_solve_clue_rejected_before_three() {
+        let mut state = default_state();
+        activate_clue(&mut state, "position");
+        activate_clue(&mut state, "solve");
+        // Solve should be rejected — only 1 clue used
+        let solve = state.clues.clues.iter().find(|c| c.id == "solve").unwrap();
+        assert!(!solve.active);
+        assert_eq!(state.clues.used, 1);
+    }
+
+    #[test]
+    fn solve_puzzle_fills_answer_and_resets_streak() {
+        let mut state = default_state();
+        state.stats.current_streak = 5;
+
+        solve_puzzle(&mut state);
+
+        assert_eq!(state.input.keys, vec!["F", "I", "R", "M"]);
+        assert_eq!(state.input.state, InputState::Correct);
+        assert!(state.input.disabled);
+        assert!(state.puzzle.solved);
+        assert_eq!(state.stats.current_streak, 0);
+        assert_eq!(state.stats.solve_clue_count, 1);
+        assert_eq!(state.stats.solved, 0); // not counted as solved
     }
 
     // --- apply_clue_effects tests ---
@@ -678,6 +830,17 @@ mod tests {
         new_game(&mut state);
 
         assert_eq!(state.stats.current_streak, 5);
+    }
+
+    #[test]
+    fn new_game_resets_guesses() {
+        let mut state = default_state();
+        state.guesses = 4;
+        state.puzzle.solved = true;
+
+        new_game(&mut state);
+
+        assert_eq!(state.guesses, 0);
     }
 
     #[test]

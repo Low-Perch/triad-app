@@ -5,6 +5,7 @@
     import { setInput } from '../stores/input.svelte'
     import { setPuzzle } from '../stores/puzzle.svelte'
     import { setKeys } from '../stores/keys.svelte'
+    import { setStats } from '../stores/stats.svelte'
     import { getDropdown, toggleDropdown, closeDropdown } from '../stores/dropdown.svelte'
 
     import DropdownItem from './DropdownItem.svelte'
@@ -30,6 +31,9 @@
         setInput(result.input)
         setPuzzle(result.puzzle)
         setKeys(result.keys)
+        if (result.stats) {
+            setStats(result.stats)
+        }
     }
 
     function handleWindowClick(e: MouseEvent) {

@@ -112,6 +112,11 @@ impl Default for Clues {
                     active: false,
                     note: "50/50".to_string(),
                 },
+                Clue {
+                    id: "solve".to_string(),
+                    active: false,
+                    note: "Reveal answer".to_string(),
+                },
             ],
             used: 0,
             available: true,
@@ -145,6 +150,10 @@ pub struct Stats {
     pub best_time: Option<i64>,
     pub solve_times: Vec<i64>,
     pub started_at: Option<i64>,
+    #[serde(default)]
+    pub guess_distribution: Vec<u32>,
+    #[serde(default)]
+    pub solve_clue_count: u32,
 }
 
 impl Default for Stats {
@@ -157,6 +166,8 @@ impl Default for Stats {
             best_time: None,
             solve_times: vec![],
             started_at: None,
+            guess_distribution: vec![0; 6],
+            solve_clue_count: 0,
         }
     }
 }
@@ -171,6 +182,8 @@ pub struct GameState {
     pub stats: Stats,
     #[serde(default)]
     pub puzzle_date: Option<String>,
+    #[serde(default)]
+    pub guesses: u32,
 }
 
 impl Default for GameState {
@@ -182,6 +195,7 @@ impl Default for GameState {
             keys: Keys::default(),
             stats: Stats::default(),
             puzzle_date: None,
+            guesses: 0,
         }
     }
 }
@@ -191,6 +205,8 @@ impl Default for GameState {
 #[serde(rename_all = "camelCase")]
 pub struct SubmitResult {
     pub solved: bool,
+    pub exhausted: bool,
+    pub guesses: u32,
     pub input_state: InputState,
     pub puzzle_state: PuzzleState,
     pub stats: Stats,
@@ -204,4 +220,5 @@ pub struct ClueResult {
     pub input: Input,
     pub puzzle: Puzzle,
     pub keys: Keys,
+    pub stats: Option<Stats>,
 }
