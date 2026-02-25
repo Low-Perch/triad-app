@@ -145,7 +145,12 @@
         {/if}
 
         <Header />
-        <Clues text={puzzleText} />
+        <div class="relative">
+            {#if puzzle.puzzleNumber !== null}
+                <p class="absolute -top-8 right-4 text-xs text-tone-text-sub">#{puzzle.puzzleNumber}</p>
+            {/if}
+            <Clues text={puzzleText} />
+        </div>
         <Input />
 
         {#if puzzle.solved}

@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "triad",
-        "width": 350,
-        "height": 500,
+        "width": 320,
+        "height": 460,
         "fullscreen": false,
         "resizable": false,
         "visible": false,

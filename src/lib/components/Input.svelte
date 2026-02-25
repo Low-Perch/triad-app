@@ -11,7 +11,7 @@
     let showLock = $derived(getKeyLocked() && !puzzle.solved)
 </script>
 
-<div class="flex justify-center items-center my-6 h-40">
+<div class="flex justify-center items-center my-6 h-24">
     {#each input.keys as key, i (i)}
         <div
             class:solved={correct}

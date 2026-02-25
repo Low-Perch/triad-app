@@ -2,12 +2,10 @@
     import { getModal, updateModal, type ModalView } from '../stores/modal.svelte'
     import { closeDropdown } from '../stores/dropdown.svelte'
     import { getTheme, toggleTheme } from '../stores/theme.svelte'
-    import { getPuzzle } from '../stores/puzzle.svelte'
 
     import Dropdown from './Dropdown.svelte'
 
     const modal = getModal()
-    const puzzle = getPuzzle()
 
     const TITLE = 'triad'.split('')
 
@@ -28,18 +26,13 @@
     let isDark = $derived(getTheme() === 'dark')
 </script>
 
-<header class="flex w-full items-center relative px-4 py-2 border-b border-tone-border">
-    <div class="flex flex-col">
-        <div class="flex space-between gap-x-1.5">
-            {#each TITLE as char (char)}
-                <p class="inline-flex justify-center items-center uppercase font-bold border-tone-border-strong border-2 w-6 h-6 aspect-square leading-none p-2 text-xs text-tone-text">
-                    {char}
-                </p>
-            {/each}
-        </div>
-        {#if puzzle.puzzleNumber !== null}
-            <p class="text-[10px] text-tone-text-sub mt-0.5">#{puzzle.puzzleNumber}</p>
-        {/if}
+<header class="flex w-full items-center relative px-2 py-2 border-b border-tone-border">
+    <div class="flex gap-x-1.5">
+        {#each TITLE as char (char)}
+            <p class="inline-flex justify-center items-center uppercase font-bold border-tone-border-strong border-2 w-6 h-6 aspect-square leading-none p-2 text-xs text-tone-text">
+                {char}
+            </p>
+        {/each}
     </div>
 
     <div class="relative flex justify-end items-center w-full space-x-1">
