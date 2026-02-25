@@ -1,5 +1,4 @@
 use rand::seq::SliceRandom;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::generator;
 use crate::models::*;
@@ -75,7 +74,6 @@ pub fn submit_solution(state: &mut GameState) -> (bool, bool) {
         mark_puzzle_solved(state);
         update_puzzle_state(state, PuzzleState::Solution);
         state.stats.current_streak = 0;
-        state.stats.started_at = None;
     } else {
         state.input.state = InputState::Incorrect;
     }
@@ -149,7 +147,6 @@ pub fn solve_puzzle(state: &mut GameState) {
     // Counts as a loss — reset streak, no solved++
     state.stats.current_streak = 0;
     state.stats.solve_clue_count += 1;
-    state.stats.started_at = None;
 }
 
 // --- Keys operations ---
@@ -174,17 +171,6 @@ pub fn disable_keys(state: &mut GameState) {
 
 // --- Stats operations ---
 
-fn now_millis() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis() as i64
-}
-
-pub fn start_puzzle_timer(state: &mut GameState) {
-    state.stats.started_at = Some(now_millis());
-}
-
 pub fn record_puzzle_played(state: &mut GameState) {
     state.stats.played += 1;
 }
@@ -195,19 +181,6 @@ pub fn record_puzzle_solved(state: &mut GameState) {
     if state.stats.current_streak > state.stats.best_streak {
         state.stats.best_streak = state.stats.current_streak;
     }
-
-    if let Some(started_at) = state.stats.started_at {
-        let elapsed = (now_millis() - started_at) / 1000;
-        if state.stats.solve_times.len() >= 100 {
-            state.stats.solve_times.remove(0);
-        }
-        state.stats.solve_times.push(elapsed);
-        state.stats.best_time = Some(match state.stats.best_time {
-            Some(best) if best <= elapsed => best,
-            _ => elapsed,
-        });
-    }
-    state.stats.started_at = None;
 }
 
 // --- Puzzle operations ---
@@ -671,14 +644,6 @@ mod tests {
     }
 
     #[test]
-    fn start_puzzle_timer_sets_started_at() {
-        let mut state = default_state();
-        assert!(state.stats.started_at.is_none());
-        start_puzzle_timer(&mut state);
-        assert!(state.stats.started_at.is_some());
-    }
-
-    #[test]
     fn record_puzzle_solved_increments_and_streaks() {
         let mut state = default_state();
         record_puzzle_solved(&mut state);
@@ -705,48 +670,6 @@ mod tests {
         record_puzzle_solved(&mut state);
         assert_eq!(state.stats.current_streak, 2);
         assert_eq!(state.stats.best_streak, 3);
-    }
-
-    #[test]
-    fn record_puzzle_solved_records_time() {
-        let mut state = default_state();
-        // Simulate timer started 5 seconds ago
-        state.stats.started_at = Some(now_millis() - 5000);
-        record_puzzle_solved(&mut state);
-        assert!(!state.stats.solve_times.is_empty());
-        assert!(state.stats.best_time.is_some());
-        assert!(state.stats.started_at.is_none());
-    }
-
-    #[test]
-    fn record_puzzle_solved_no_time_without_timer() {
-        let mut state = default_state();
-        record_puzzle_solved(&mut state);
-        assert!(state.stats.solve_times.is_empty());
-        assert!(state.stats.best_time.is_none());
-    }
-
-    #[test]
-    fn record_puzzle_solved_tracks_best_time() {
-        let mut state = default_state();
-
-        // First solve: 10 seconds
-        state.stats.started_at = Some(now_millis() - 10000);
-        record_puzzle_solved(&mut state);
-        let best1 = state.stats.best_time.unwrap();
-        assert!(best1 >= 9 && best1 <= 11); // ~10s with tolerance
-
-        // Second solve: 3 seconds (new best)
-        state.stats.started_at = Some(now_millis() - 3000);
-        record_puzzle_solved(&mut state);
-        let best2 = state.stats.best_time.unwrap();
-        assert!(best2 >= 2 && best2 <= 4); // ~3s with tolerance
-
-        // Third solve: 7 seconds (not best)
-        state.stats.started_at = Some(now_millis() - 7000);
-        record_puzzle_solved(&mut state);
-        let best3 = state.stats.best_time.unwrap();
-        assert_eq!(best3, best2); // Still the 3s best
     }
 
     // --- puzzle operations tests ---

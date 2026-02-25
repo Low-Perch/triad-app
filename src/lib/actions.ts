@@ -1,5 +1,4 @@
 import * as bridge from './bridge'
-import { formatTime } from './format'
 import { setClues, getClues } from './stores/clues.svelte'
 import { getPuzzle, setPuzzle } from './stores/puzzle.svelte'
 import { setInput } from './stores/input.svelte'
@@ -26,14 +25,7 @@ export function generateShareText(): string {
         : `Triad ${squares} ${guessDisplay}/6`
     const lines = [title]
 
-    const latestTime = stats.solveTimes.length > 0
-        ? stats.solveTimes[stats.solveTimes.length - 1]
-        : null
-
-    const parts: string[] = []
-    if (latestTime !== null) parts.push(`⏱️ ${formatTime(latestTime)}`)
-    if (stats.currentStreak > 0) parts.push(`🔥 ${stats.currentStreak}`)
-    if (parts.length > 0) lines.push(parts.join(' | '))
+    if (stats.currentStreak > 0) lines.push(`🔥 ${stats.currentStreak}`)
 
     return lines.join('\n')
 }

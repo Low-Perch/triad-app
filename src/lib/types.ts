@@ -38,9 +38,6 @@ export type Stats = {
     solved: number
     currentStreak: number
     bestStreak: number
-    bestTime: number | null
-    solveTimes: number[]
-    startedAt: number | null
     guessDistribution: number[]
     solveClueCount: number
 }

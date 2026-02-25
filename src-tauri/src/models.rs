@@ -147,9 +147,6 @@ pub struct Stats {
     pub solved: u32,
     pub current_streak: u32,
     pub best_streak: u32,
-    pub best_time: Option<i64>,
-    pub solve_times: Vec<i64>,
-    pub started_at: Option<i64>,
     #[serde(default)]
     pub guess_distribution: Vec<u32>,
     #[serde(default)]
@@ -163,9 +160,6 @@ impl Default for Stats {
             solved: 0,
             current_streak: 0,
             best_streak: 0,
-            best_time: None,
-            solve_times: vec![],
-            started_at: None,
             guess_distribution: vec![0; 6],
             solve_clue_count: 0,
         }

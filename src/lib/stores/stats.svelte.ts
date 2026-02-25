@@ -7,9 +7,6 @@ export const INIT_STATS: Stats = {
     solved: 0,
     currentStreak: 0,
     bestStreak: 0,
-    bestTime: null,
-    solveTimes: [],
-    startedAt: null,
     guessDistribution: [0, 0, 0, 0, 0, 0],
     solveClueCount: 0,
 }
@@ -43,12 +40,3 @@ export function getGuessDistribution(): { label: string; count: number }[] {
     ]
 }
 
-export function getTimeBuckets(): { under10: number; under30: number; under60: number; over60: number } {
-    const times = stats.solveTimes
-    return {
-        under10: times.filter(t => t < 10).length,
-        under30: times.filter(t => t >= 10 && t < 30).length,
-        under60: times.filter(t => t >= 30 && t < 60).length,
-        over60: times.filter(t => t >= 60).length,
-    }
-}

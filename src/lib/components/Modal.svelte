@@ -16,56 +16,63 @@
 
 <svelte:body onkeydown={handleKey} />
 
-<!-- svelte-ignore a11y_no_static_element_interactions a11y_click_events_have_key_events -->
-<div class="backdrop" onclick={closeModal}></div>
-
 <div
     id="modal"
     role="alertdialog"
     aria-modal="true"
     class="modal-overlay"
 >
+    <button class="close-btn" onclick={closeModal} aria-label="Close">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+    </button>
     <div class="modal-content">
-        <div class="relative flex w-full h-full justify-center">
-            {#if modal?.view == "info"}
-                <Info />
-            {:else if modal?.view == "stats"}
-                <Stats />
-            {/if}
-        </div>
+        {#if modal?.view == "info"}
+            <Info />
+        {:else if modal?.view == "stats"}
+            <Stats />
+        {/if}
     </div>
 </div>
 
 <style>
-    .backdrop {
-        position: fixed;
-        inset: 0;
-        z-index: 90;
-        background-color: var(--tone-overlay);
-    }
-
     .modal-overlay {
         position: fixed;
-        width: 83.333%;
-        height: 83.333%;
-        margin-top: 0.75rem;
-        overflow-y: hidden;
-        top: 50%;
-        transform: translateY(-50%);
+        inset: 0;
         z-index: 100;
-        inset-inline: 0;
-        margin-inline: auto;
-        border: 1px solid var(--tone-border);
-        border-radius: 8px;
+        overflow-y: auto;
+        background-color: var(--tone-surface);
+    }
+
+    .close-btn {
+        position: absolute;
+        top: 0.75rem;
+        right: 0.75rem;
+        z-index: 110;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        border: none;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--tone-text-sub);
+        cursor: pointer;
+        transition: background-color 0.15s, color 0.15s;
+    }
+
+    .close-btn:hover {
+        background-color: var(--tone-key);
+        color: var(--tone-text);
     }
 
     .modal-content {
-        position: absolute;
-        height: 100%;
-        z-index: 50;
         width: 100%;
-        margin-inline: auto;
-        background-color: var(--tone-surface);
-        border-radius: 8px;
+        min-height: 100%;
+        display: flex;
+        justify-content: center;
     }
 </style>

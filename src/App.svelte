@@ -3,7 +3,6 @@
     import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 
     import * as bridge from './lib/bridge'
-    import { formatTime } from './lib/format'
     import { generateShareText, handleNewGame } from './lib/actions'
 
     import { getModal } from './lib/stores/modal.svelte'
@@ -11,7 +10,7 @@
     import { setClues } from './lib/stores/clues.svelte'
     import { getPuzzle, setPuzzle } from './lib/stores/puzzle.svelte'
     import { setInput, getInput } from './lib/stores/input.svelte'
-    import { getStats, setStats } from './lib/stores/stats.svelte'
+    import { setStats } from './lib/stores/stats.svelte'
     import { getGuesses, setGuesses } from './lib/stores/guesses.svelte'
     import { initTheme } from './lib/stores/theme.svelte'
 
@@ -27,8 +26,6 @@
     const input = getInput()
     const modal = getModal()
     const puzzle = getPuzzle()
-
-    const stats = getStats()
 
     let loading = $state(true)
     let error = $state(false)
@@ -82,10 +79,6 @@
 
     let puzzleText = $derived(puzzle[puzzle.state])
     let disabledKeys = $derived(keys.disabledKeys)
-    let solveTimeDisplay = $derived.by(() => {
-        if (stats.solveTimes.length === 0) return null
-        return formatTime(stats.solveTimes[stats.solveTimes.length - 1])
-    })
 
     let unlistenClose: (() => void) | undefined
     let unlistenFocus: (() => void) | undefined
@@ -161,9 +154,6 @@
 
         {#if puzzle.solved}
             <div class="post-solve">
-                {#if solveTimeDisplay !== null}
-                    <p class="solve-time">{solveTimeDisplay}</p>
-                {/if}
                 <div class="post-solve-actions">
                     <button onclick={handleNewGame} class="action-btn">
                         <span class="text-sm font-semibold">Next</span>

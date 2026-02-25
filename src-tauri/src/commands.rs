@@ -29,7 +29,6 @@ pub fn init_game(
             }
             // Resume mid-solve on today's daily
             game::record_puzzle_played(&mut game_state);
-            game::start_puzzle_timer(&mut game_state);
             persistence::save_game(&app, &game_state)?;
             return Ok(game_state.clone());
         }
@@ -44,7 +43,6 @@ pub fn init_game(
     game::initialize_with_daily_puzzle(&mut game_state, puzzle_number);
     game_state.puzzle_date = Some(today);
     game::record_puzzle_played(&mut game_state);
-    game::start_puzzle_timer(&mut game_state);
     persistence::save_game(&app, &game_state)?;
 
     Ok(game_state.clone())
@@ -144,7 +142,6 @@ pub fn new_game(
 
     game::new_game(&mut game_state);
     game::record_puzzle_played(&mut game_state);
-    game::start_puzzle_timer(&mut game_state);
     persistence::save_game(&app, &game_state)?;
 
     Ok(game_state.clone())

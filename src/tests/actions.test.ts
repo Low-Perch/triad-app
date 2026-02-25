@@ -9,7 +9,7 @@ describe("generateShareText", () => {
   beforeEach(() => {
     setPuzzle({ ...INIT_PUZZLE });
     setClues(structuredClone(INIT_CLUES));
-    setStats({ ...INIT_STATS, solveTimes: [] });
+    setStats({ ...INIT_STATS });
     setGuesses(0);
   });
 
@@ -59,56 +59,29 @@ describe("generateShareText", () => {
     expect(text).not.toContain("#");
   });
 
-  it("includes solve time when available", () => {
-    setStats({ ...INIT_STATS, solveTimes: [25] });
-    const text = generateShareText();
-    expect(text).toContain("⏱️ 25s");
-  });
-
-  it("formats solve time with minutes when over 60s", () => {
-    setStats({ ...INIT_STATS, solveTimes: [90] });
-    const text = generateShareText();
-    expect(text).toContain("⏱️ 1m 30s");
-  });
-
   it("includes streak when active", () => {
-    setStats({ ...INIT_STATS, currentStreak: 5, solveTimes: [] });
+    setStats({ ...INIT_STATS, currentStreak: 5 });
     const text = generateShareText();
     expect(text).toContain("🔥 5");
   });
 
-  it("includes both time and streak separated by pipe", () => {
-    setStats({ ...INIT_STATS, currentStreak: 3, solveTimes: [15] });
-    const text = generateShareText();
-    const lines = text.split("\n");
-    expect(lines).toHaveLength(2);
-    expect(lines[1]).toBe("⏱️ 15s | 🔥 3");
-  });
-
-  it("uses the latest solve time from the array", () => {
-    setStats({ ...INIT_STATS, solveTimes: [10, 20, 45] });
-    const text = generateShareText();
-    expect(text).toContain("⏱️ 45s");
-    expect(text).not.toContain("10s");
-  });
-
-  it("omits stats line when no time and no streak", () => {
+  it("omits streak line when no streak", () => {
     const text = generateShareText();
     expect(text.split("\n")).toHaveLength(1);
   });
 
-  it("combines daily puzzle number with clue squares and stats", () => {
+  it("combines daily puzzle number with clue squares and streak", () => {
     setPuzzle({ ...INIT_PUZZLE, puzzleNumber: 7 });
     const cluesState = structuredClone(INIT_CLUES);
     cluesState.clues[1].active = true;
     cluesState.used = 1;
     setClues(cluesState);
-    setStats({ ...INIT_STATS, currentStreak: 2, solveTimes: [33] });
+    setStats({ ...INIT_STATS, currentStreak: 2 });
     setGuesses(3);
 
     const text = generateShareText();
     const lines = text.split("\n");
     expect(lines[0]).toBe("Triad #7 🟩🟨🟩🟩 3/6");
-    expect(lines[1]).toBe("⏱️ 33s | 🔥 2");
+    expect(lines[1]).toBe("🔥 2");
   });
 });
