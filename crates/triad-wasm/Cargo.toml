@@ -2,6 +2,9 @@
 name = "triad-wasm"
 version = "0.1.0"
 edition = "2021"
+description = "WASM bindings for the Triad word puzzle game engine"
+repository = "https://github.com/cdrani/triad"
+license = "MIT"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

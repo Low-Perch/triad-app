@@ -2,6 +2,9 @@
 name = "triad-core"
 version = "0.1.0"
 edition = "2021"
+description = "Core game logic for the Triad word puzzle"
+repository = "https://github.com/cdrani/triad"
+license = "MIT"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
