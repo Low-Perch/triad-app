@@ -24,14 +24,15 @@
     role="alertdialog"
     aria-modal="true"
     class="modal-overlay"
+    onclick={(e) => { if (e.target === e.currentTarget) closeModal() }}
 >
-    <button class="close-btn" onclick={closeModal} aria-label="Close">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-    </button>
     <div class="modal-content">
+        <button class="close-btn" onclick={closeModal} aria-label="Close">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
         {#if modal?.view == "info"}
             <Info />
         {:else if modal?.view == "stats"}
@@ -45,14 +46,16 @@
         position: fixed;
         inset: 0;
         z-index: 100;
-        overflow-y: auto;
-        background-color: var(--tone-surface);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--tone-overlay);
     }
 
     .close-btn {
         position: absolute;
-        top: 0.75rem;
-        right: 0.75rem;
+        top: 0.5rem;
+        right: 0.5rem;
         z-index: 110;
         display: flex;
         align-items: center;
@@ -73,9 +76,13 @@
     }
 
     .modal-content {
+        position: relative;
         width: 100%;
-        min-height: 100%;
-        display: flex;
-        justify-content: center;
+        max-width: 400px;
+        max-height: 90vh;
+        overflow-y: auto;
+        background-color: var(--tone-surface);
+        border-radius: 8px;
+        padding: 1.5rem;
     }
 </style>

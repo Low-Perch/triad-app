@@ -1,4 +1,4 @@
-import * as bridge from './bridge'
+import * as bridge from '$lib/bridge'
 import { setClues, getClues } from './stores/clues.svelte'
 import { getPuzzle, setPuzzle } from './stores/puzzle.svelte'
 import { setInput } from './stores/input.svelte'

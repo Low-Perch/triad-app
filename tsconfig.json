@@ -13,7 +13,11 @@
      */
     "allowJs": true,
     "checkJs": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "paths": {
+      "$lib/bridge": ["./src/lib/bridge.tauri.ts"],
+      "$lib/lifecycle": ["./src/lib/lifecycle.tauri.ts"]
+    }
   },
   "include": ["src/**/*.d.ts", "src/**/*.ts", "src/**/*.js", "src/**/*.svelte"],
   "references": [{ "path": "./tsconfig.node.json" }]

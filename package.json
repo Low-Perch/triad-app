@@ -11,7 +11,11 @@
     "tauri": "tauri",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "wasm:build": "wasm-pack build crates/triad-wasm --target web --out-dir ../../wasm-pkg",
+    "dev:web": "pnpm wasm:build && vite --config vite.config.web.ts",
+    "build:web": "pnpm wasm:build && vite build --config vite.config.web.ts",
+    "preview:web": "vite preview --config vite.config.web.ts"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
@@ -32,6 +36,9 @@
     "tslib": "^2.6.0",
     "typescript": "^5.0.2",
     "vite": "^6",
+    "vite-plugin-pwa": "^1.2.0",
+    "vite-plugin-top-level-await": "^1.6.0",
+    "vite-plugin-wasm": "^3.5.0",
     "vitest": "^4.0.18"
   }
 }

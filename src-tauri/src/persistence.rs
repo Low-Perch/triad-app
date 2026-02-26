@@ -1,7 +1,7 @@
 use tauri::AppHandle;
 use tauri_plugin_store::StoreExt;
 
-use crate::models::GameState;
+use triad_core::models::GameState;
 
 const STORE_PATH: &str = ".settings.dat";
 const GAME_KEY: &str = "game";

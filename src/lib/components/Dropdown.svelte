@@ -1,5 +1,5 @@
 <script lang="ts">
-    import * as bridge from '../bridge'
+    import * as bridge from '$lib/bridge'
     import { closeModal } from '../stores/modal.svelte'
     import { getClues, setClues } from '../stores/clues.svelte'
     import { setInput } from '../stores/input.svelte'

@@ -8,7 +8,7 @@
     let { disabledKeys }: { disabledKeys: string[] } = $props()
 </script>
 
-<div class="flex-col justify-center left-1/2 -translate-x-1/2 items-center w-full px-2 absolute bottom-2">
+<div class="keys-container">
     <div class="flex justify-center gap-x-1.5 items-center">
         {#each firstRow as key (key)}
             <Key key={key} disabled={disabledKeys.includes(key)} />
@@ -31,3 +31,19 @@
         <Key key="del" width={12} />
     </div>
 </div>
+
+<style>
+    .keys-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        max-width: 400px;
+        margin: 0 auto;
+        padding: 0 0.5rem;
+        position: absolute;
+        bottom: 0.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+</style>

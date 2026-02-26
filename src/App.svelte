@@ -1,8 +1,8 @@
 <script lang="ts">
     import { onMount } from 'svelte'
-    import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 
-    import * as bridge from './lib/bridge'
+    import * as bridge from '$lib/bridge'
+    import { registerLifecycleHooks } from '$lib/lifecycle'
     import { handleNewGame } from './lib/actions'
 
     import { getModal, openModal } from './lib/stores/modal.svelte'
@@ -23,8 +23,6 @@
     import ResultScreen from './lib/components/ResultScreen.svelte'
 
     type AppPhase = 'loading' | 'splash' | 'solved-today' | 'revealing' | 'playing' | 'congrats' | 'failed' | 'error'
-
-    const appWindow = getCurrentWebviewWindow()
 
     const keys = getKeys()
     const input = getInput()
@@ -75,8 +73,7 @@
     let puzzleText = $derived(puzzle[puzzle.state])
     let disabledKeys = $derived(keys.disabledKeys)
 
-    let unlistenClose: (() => void) | undefined
-    let unlistenFocus: (() => void) | undefined
+    let lifecycleCleanups: (() => void)[] = []
 
     function startReveal() {
         phase = 'revealing'
@@ -113,17 +110,7 @@
             return
         }
 
-        try {
-            unlistenClose = await appWindow.onCloseRequested(async () => {
-                await bridge.saveGame()
-            })
-
-            unlistenFocus = await appWindow.onFocusChanged(async () => {
-                await bridge.saveGame()
-            })
-        } catch (e) {
-            console.error('Failed to register window event listeners:', e)
-        }
+        lifecycleCleanups = await registerLifecycleHooks()
 
         phase = 'splash'
     }
@@ -135,14 +122,13 @@
         window.addEventListener('keydown', handleKeyboard)
 
         return () => {
-            unlistenClose?.()
-            unlistenFocus?.()
+            lifecycleCleanups.forEach(fn => fn())
             window.removeEventListener('keydown', handleKeyboard)
         }
     })
 </script>
 
-<main class="absolute flex-col w-full h-full">
+<main class="app-container">
     {#if modal.visible}
         <Modal onpostNewGame={startReveal} />
     {/if}
@@ -165,12 +151,10 @@
         />
     {:else if phase === 'revealing' || phase === 'playing'}
         <Header />
-        <div class="relative">
-            {#if puzzle.puzzleNumber !== null}
-                <p class="absolute -top-9 right-3 text-xs text-tone-text-sub">#{puzzle.puzzleNumber}</p>
-            {/if}
-            <Clues text={puzzleText} revealing={phase === 'revealing'} />
-        </div>
+        {#if puzzle.puzzleNumber !== null}
+            <p class="text-right pr-3 pt-1 text-xs text-tone-text-sub">#{puzzle.puzzleNumber}</p>
+        {/if}
+        <Clues text={puzzleText} revealing={phase === 'revealing'} />
         <Input revealing={phase === 'revealing'} />
         <p class="guess-counter">{getGuesses()}/6</p>
         {#if !puzzle.solved}
@@ -180,6 +164,18 @@
 </main>
 
 <style>
+    .app-container {
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: 100%;
+        max-width: 600px;
+        margin: 0 auto;
+        left: 0;
+        right: 0;
+    }
+
     .action-btn {
         display: inline-flex;
         align-items: center;

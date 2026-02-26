@@ -1,0 +1,3 @@
+[workspace]
+members = ["crates/triad-core", "crates/triad-wasm", "src-tauri"]
+resolver = "2"

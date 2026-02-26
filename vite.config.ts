@@ -6,6 +6,13 @@ import { svelteTesting } from "@testing-library/svelte/vite";
 export default defineConfig(async () => ({
   plugins: [svelte(), svelteTesting()],
 
+  resolve: {
+    alias: {
+      "$lib/bridge": new URL("./src/lib/bridge.tauri.ts", import.meta.url).pathname,
+      "$lib/lifecycle": new URL("./src/lib/lifecycle.tauri.ts", import.meta.url).pathname,
+    },
+  },
+
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
   // 1. prevent vite from obscuring rust errors
