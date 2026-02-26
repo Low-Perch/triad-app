@@ -14,6 +14,7 @@ dist-web
 wasm-pkg
 target
 *.local
+scripts/filter_report.json
 
 # Editor directories and files
 .vscode/*
