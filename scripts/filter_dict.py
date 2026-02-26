@@ -84,7 +84,6 @@ def filter_dictionary():
             "inflection_words": 0,
         },
         "keys_dropped": 0,
-        "keys_restored": 0,
         "after": {"keys": 0, "words": 0},
         "sample_removals": [],
     }
@@ -170,29 +169,8 @@ def filter_dictionary():
         total_kept = len(kept_prefix) + len(kept_suffix)
 
         if total_kept < MIN_WORDS_PER_KEY:
-            # Try restoring highest-frequency removed words (never offensive)
-            restorable = [
-                (w, reason, freq, lt)
-                for w, reason, freq, lt in removed_for_key
-                if reason != "offensive"
-            ]
-            restorable.sort(key=lambda x: x[2], reverse=True)
-
-            while total_kept < MIN_WORDS_PER_KEY and restorable:
-                w, reason, freq, lt = restorable.pop(0)
-                if lt == "prefix":
-                    kept_prefix.append(w)
-                else:
-                    kept_suffix.append(w)
-                total_kept += 1
-                total_removed -= 1
-                stats["removed"][f"{reason}_words"] -= 1
-
-            if total_kept < MIN_WORDS_PER_KEY:
-                stats["keys_dropped"] += 1
-                continue
-            else:
-                stats["keys_restored"] += 1
+            stats["keys_dropped"] += 1
+            continue
 
         filtered_dict[key] = {}
         if kept_prefix:
@@ -224,7 +202,6 @@ def filter_dictionary():
     print(f"  Inflections:     {stats['removed']['inflection_words']}")
     print()
     print(f"Keys dropped (< {MIN_WORDS_PER_KEY} words): {stats['keys_dropped']}")
-    print(f"Keys restored (words added back):  {stats['keys_restored']}")
     print()
     pct_keys = (1 - stats["after"]["keys"] / stats["before"]["keys"]) * 100
     pct_words = (1 - stats["after"]["words"] / stats["before"]["words"]) * 100
