@@ -91,3 +91,7 @@ Tailwind v3 with class-based dark mode. Colors are CSS variables (`--tone-*` in 
 ### Deployment
 
 Pushing to `main` runs `.github/workflows/deploy-web.yml`: builds the WASM package and web bundle, then deploys `dist-web/` to Cloudflare Pages. PWA behavior (autoUpdate service worker, manifest) is configured in `vite.config.web.ts`.
+
+Desktop releases: pushing a `v*` tag runs `.github/workflows/release-desktop.yml` (tests → macOS universal/Windows/Linux installers → draft GitHub Release; keep the tag and `tauri.conf.json` version in step). The web build also ships a standalone `/download` page (`download.html`, second Vite input) that lists the latest release assets via the GitHub API — it's excluded from the SPA service-worker fallback via `navigateFallbackDenylist`.
+
+Desktop auto-update: `tauri-plugin-updater` checks `releases/latest/download/latest.json` on launch (`lifecycle.tauri.ts` → update banner in `App.svelte`). Update artifacts are signed in CI with the `TAURI_SIGNING_PRIVATE_KEY` repo secret (empty password); the private key lives ONLY in `~/.tauri/triad-app.key` and that secret — losing it breaks auto-update for existing installs (rotating the pubkey requires users to reinstall once). The pubkey is embedded in `tauri.conf.json`.
