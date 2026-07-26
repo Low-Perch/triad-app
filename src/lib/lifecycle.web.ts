@@ -1,7 +1,14 @@
 import * as bridge from '$lib/bridge'
 
+export type UpdateInfo = {
+    version: string
+    install: () => Promise<void>
+}
+
 export type LifecycleHandlers = {
     onResume?: () => void
+    /** Desktop only: never fired on web — the service worker auto-updates. */
+    onUpdateAvailable?: (info: UpdateInfo) => void
 }
 
 export async function registerLifecycleHooks(handlers: LifecycleHandlers = {}): Promise<(() => void)[]> {

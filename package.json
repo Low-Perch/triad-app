@@ -1,7 +1,7 @@
 {
   "name": "triad",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -20,7 +20,9 @@
   "dependencies": {
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-clipboard-manager": "^2.3.2",
-    "@tauri-apps/plugin-store": "^2"
+    "@tauri-apps/plugin-process": "^2.3.1",
+    "@tauri-apps/plugin-store": "^2",
+    "@tauri-apps/plugin-updater": "^2.10.1"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^5",

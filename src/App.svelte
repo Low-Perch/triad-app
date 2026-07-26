@@ -2,7 +2,7 @@
     import { onMount } from 'svelte'
 
     import * as bridge from '$lib/bridge'
-    import { registerLifecycleHooks } from '$lib/lifecycle'
+    import { registerLifecycleHooks, type UpdateInfo } from '$lib/lifecycle'
     import { handleNewGame, handleArchiveGame, handleResumeDaily, hydrateGame } from './lib/actions'
 
     import { getModal, openModal } from './lib/stores/modal.svelte'
@@ -35,6 +35,20 @@
     let phase = $state<AppPhase>('loading')
     let puzzleDate: string | null = null
     let hooksRegistered = false
+
+    let update = $state<UpdateInfo | null>(null)
+    let updateState = $state<'idle' | 'installing' | 'failed'>('idle')
+
+    async function handleInstallUpdate() {
+        if (!update || updateState === 'installing') return
+        updateState = 'installing'
+        try {
+            await update.install() // relaunches on success
+        } catch (e) {
+            console.error('Failed to install update:', e)
+            updateState = 'failed'
+        }
+    }
 
     async function handleKeyboard(e: KeyboardEvent) {
         if (phase !== 'playing') return
@@ -154,7 +168,10 @@
         await applyArchiveParam()
 
         if (!hooksRegistered) {
-            lifecycleCleanups = await registerLifecycleHooks({ onResume: checkRollover })
+            lifecycleCleanups = await registerLifecycleHooks({
+                onResume: checkRollover,
+                onUpdateAvailable: (info) => { update = info },
+            })
             hooksRegistered = true
         }
 
@@ -177,6 +194,20 @@
 </script>
 
 <main class="app-container">
+    {#if update}
+        <div class="update-banner" role="status">
+            {#if updateState === 'failed'}
+                <span>Update failed — try again?</span>
+            {:else}
+                <span>v{update.version} is available</span>
+            {/if}
+            <button class="update-btn" onclick={handleInstallUpdate} disabled={updateState === 'installing'}>
+                {updateState === 'installing' ? 'Installing…' : 'Restart to update'}
+            </button>
+            <button class="update-dismiss" onclick={() => { update = null }} aria-label="Dismiss update notice">✕</button>
+        </div>
+    {/if}
+
     {#if modal.visible}
         <Modal onpostNewGame={startReveal} />
     {/if}
@@ -251,6 +282,43 @@
 
     .action-btn:hover {
         opacity: 0.9;
+    }
+
+    .update-banner {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.375rem 0.5rem;
+        font-size: 0.75rem;
+        color: var(--tone-text);
+        background-color: var(--tone-surface);
+        border-bottom: 1px solid var(--tone-border);
+    }
+
+    .update-btn {
+        border: none;
+        border-radius: 9999px;
+        padding: 0.25rem 0.75rem;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        background-color: var(--tone-correct);
+        color: #ffffff;
+        cursor: pointer;
+    }
+
+    .update-btn:disabled {
+        opacity: 0.6;
+        cursor: wait;
+    }
+
+    .update-dismiss {
+        border: none;
+        background: none;
+        color: var(--tone-text-sub);
+        cursor: pointer;
+        font-size: 0.75rem;
+        padding: 0.25rem;
     }
 
     .game-area {
