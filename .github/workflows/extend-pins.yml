@@ -1,0 +1,49 @@
+name: Extend Pinned Puzzles
+
+on:
+  schedule:
+    - cron: '0 6 1 * *' # monthly, 1st at 06:00 UTC
+  workflow_dispatch:
+
+jobs:
+  extend:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+
+      - name: Extend pinned horizon to 18 months out
+        run: cargo run -p triad-core --bin pin_puzzles -- "$(date -d '+18 months' +%F)"
+
+      - name: Verify engine tests against the new pins
+        run: cargo test -p triad-core
+
+      - name: Open PR if the tail changed
+        uses: peter-evans/create-pull-request@v7
+        with:
+          # Org policy blocks GITHUB_TOKEN from creating PRs; use a fine-grained
+          # PAT (Contents + Pull requests RW on this repo) if one is configured
+          token: ${{ secrets.EXTEND_PINS_TOKEN || github.token }}
+          base: develop
+          branch: chore/extend-pinned-puzzles
+          add-paths: crates/triad-core/src/resources/pinned.json
+          delete-branch: true
+          commit-message: 'chore(pins): extend pinned puzzle horizon to 18 months out'
+          title: 'chore(pins): extend pinned puzzle horizon'
+          body: |
+            Scheduled `pin_puzzles` run extending the pinned tail to 18 months from
+            today. Entries through tomorrow are preserved verbatim; only the future
+            tail is regenerated (a diff appears only if the horizon moved or the
+            dictionary changed since the last pin run).
+
+            Merging to `develop` and promoting to `main` embeds the new pins in the
+            next web deploy; desktop picks them up at the next release build.

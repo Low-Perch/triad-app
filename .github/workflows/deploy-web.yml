@@ -25,6 +25,9 @@ jobs:
         with:
           workspaces: crates/triad-wasm
 
+      - name: Engine tests (incl. pinned-horizon guard)
+        run: cargo test -p triad-core
+
       - name: Install wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
 
