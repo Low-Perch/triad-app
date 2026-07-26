@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """Filter dict.json for the Triad word puzzle game.
 
-Removes uncommon words, plurals, inflections, and offensive content.
+Removes uncommon words, plurals, inflections, and offensive content, then
+scores each surviving key into a difficulty tier (1 easy / 2 medium / 3 hard)
+by the mean zipf frequency of its clue words — terciles, recomputed each run.
 Usage: python3 scripts/filter_dict.py
 """
 
 import json
 import os
+import statistics
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -23,8 +26,21 @@ REPORT_PATH = SCRIPT_DIR / "filter_report.json"
 
 # Thresholds
 UNCOMMON_ZIPF = 2.0          # Words below this are considered too obscure
-INFLECTION_KEEP_ZIPF = 4.0   # Inflections above this are kept (e.g., "building")
+INFLECTION_KEEP_ZIPF = 4.0   # Irregular inflections above this are kept (e.g., "thought")
 MIN_WORDS_PER_KEY = 3
+
+# Wordle-style clue-word policy: regularly suffixed inflections (runs,
+# boxes, fanned, fanning) are removed outright when their base form is
+# also a word — no frequency exception. Irregular forms without these
+# endings (thought, began) keep the frequency gate above, since many
+# double as nouns/adjectives in their own right.
+INFLECTION_ENDINGS = ("ing", "ed", "es", "s")
+
+# A lemma counts as an existing base form if it's a clue word itself OR a
+# reasonably common English word. The clue-word check alone misses short
+# bases (e.g. "fan" — too short to ever be a clue word), which is how
+# fanned/fanning previously slipped through.
+BASE_FORM_ZIPF = 3.0
 
 # Keys that are themselves offensive (player solves for these)
 OFFENSIVE_KEYS = {"fuck", "slut", "cunt", "twat"}
@@ -49,17 +65,22 @@ def build_word_set(dictionary):
     return words
 
 
+def base_exists(lemma, all_words):
+    """A base form 'exists' if it's a clue word or a common word on its own."""
+    return lemma in all_words or zipf_frequency(lemma, "en") >= BASE_FORM_ZIPF
+
+
 def is_plural(word, lemmatizer, all_words):
     """Check if word is a plural form whose base also exists."""
     lemma = lemmatizer.lemmatize(word, pos="n")
-    return lemma != word and lemma in all_words
+    return lemma != word and base_exists(lemma, all_words)
 
 
 def is_inflection(word, lemmatizer, all_words):
     """Check if word is an inflected form (verb, adjective, adverb)."""
     for pos in ("v", "a", "r"):  # verb, adjective, adverb
         lemma = lemmatizer.lemmatize(word, pos=pos)
-        if lemma != word and lemma in all_words:
+        if lemma != word and base_exists(lemma, all_words):
             return True
     return False
 
@@ -147,9 +168,10 @@ def filter_dictionary():
                     reason = "plural"
                     stats["removed"]["plural_words"] += 1
 
-                # Filter 5: Inflections (with frequency gate)
+                # Filter 5: Inflections — suffixed forms go unconditionally,
+                # irregular forms only when uncommon
                 elif is_inflection(w, lemmatizer, all_words):
-                    if freq < INFLECTION_KEEP_ZIPF:
+                    if w.endswith(INFLECTION_ENDINGS) or freq < INFLECTION_KEEP_ZIPF:
                         reason = "inflection"
                         stats["removed"]["inflection_words"] += 1
 
@@ -177,6 +199,34 @@ def filter_dictionary():
             filtered_dict[key]["prefix"] = sorted(kept_prefix)
         if kept_suffix:
             filtered_dict[key]["suffix"] = sorted(kept_suffix)
+
+    # --- Phase 7: Difficulty tiers ---
+    # Terciles of mean clue-word zipf: 1 easy / 2 medium / 3 hard. Consumed
+    # by generator.rs (weekday ramp); recomputed on every curation run.
+    print("Phase 7: Scoring difficulty tiers...")
+    key_scores = {
+        key: statistics.mean(
+            zipf_frequency(w.lower(), "en")
+            for w in entry.get("prefix", []) + entry.get("suffix", [])
+        )
+        for key, entry in filtered_dict.items()
+    }
+    ordered = sorted(key_scores.values())
+    hard_cut = ordered[len(ordered) // 3]
+    easy_cut = ordered[(2 * len(ordered)) // 3]
+    tier_counts = {1: 0, 2: 0, 3: 0}
+    for key, entry in filtered_dict.items():
+        score = key_scores[key]
+        tier = 1 if score >= easy_cut else (2 if score >= hard_cut else 3)
+        entry["tier"] = tier
+        tier_counts[tier] += 1
+    stats["tiers"] = {
+        "easy_cut_zipf": round(easy_cut, 3),
+        "hard_cut_zipf": round(hard_cut, 3),
+        "counts": {str(t): n for t, n in tier_counts.items()},
+    }
+    print(f"  cuts: easy >= {easy_cut:.2f}, hard < {hard_cut:.2f}")
+    print(f"  counts: T1 {tier_counts[1]}, T2 {tier_counts[2]}, T3 {tier_counts[3]}")
 
     # Final stats
     after_words = 0
