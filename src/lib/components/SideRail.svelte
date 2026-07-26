@@ -2,6 +2,7 @@
     import { getStats, getSolveRate } from '../stores/stats.svelte'
     import { openModal } from '../stores/modal.svelte'
     import { localDateString } from '../date'
+    import { isTauri, DESKTOP_DOWNLOAD_URL } from '../platform'
 
     let { onplaydate }: { onplaydate: (date: string) => void } = $props()
 
@@ -37,6 +38,17 @@
         </button>
         <button class="rail-link" onclick={() => openModal('archive')}>Browse archive</button>
     </section>
+
+    {#if !isTauri}
+        <a
+            class="rail-link rail-download"
+            href={DESKTOP_DOWNLOAD_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+        >
+            Download Triad for desktop
+        </a>
+    {/if}
 </aside>
 
 <style>
@@ -118,5 +130,9 @@
 
     .rail-link:hover {
         color: var(--tone-text);
+    }
+
+    .rail-download {
+        text-align: center;
     }
 </style>

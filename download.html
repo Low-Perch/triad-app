@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Download Triad</title>
+    <link rel="icon" type="image/png" href="/favicon-32x32.png" />
+    <meta name="description" content="Download the Triad desktop app for macOS, Windows, or Linux — or install the web app on your phone." />
+    <style>
+        :root {
+            --tone-bg: #ffffff;
+            --tone-surface: #ffffff;
+            --tone-text: #1a1a1b;
+            --tone-text-sub: #787c7e;
+            --tone-border: #d3d6da;
+            --tone-border-strong: #878a8c;
+            --tone-correct: #6aaa64;
+            --tone-glow: rgba(26, 26, 27, 0.03);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --tone-bg: #121213;
+                --tone-surface: #1a1a1b;
+                --tone-text: #d7dadc;
+                --tone-text-sub: #818384;
+                --tone-border: #3a3a3c;
+                --tone-border-strong: #565758;
+                --tone-correct: #538d4e;
+                --tone-glow: rgba(215, 218, 220, 0.045);
+            }
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--tone-bg);
+            background-image: radial-gradient(ellipse 70% 55% at 50% 30%, var(--tone-glow), transparent 70%);
+            background-repeat: no-repeat;
+            color: var(--tone-text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 3rem 1rem 4rem;
+        }
+
+        .logo { display: flex; gap: 0.375rem; margin-bottom: 1.5rem; }
+
+        .logo span {
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-transform: uppercase;
+            font-weight: 700;
+            font-size: 0.75rem;
+            border: 2px solid var(--tone-border-strong);
+        }
+
+        h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+
+        .sub { color: var(--tone-text-sub); font-size: 0.875rem; margin-bottom: 0.75rem; text-align: center; }
+
+        .version { font-size: 0.75rem; color: var(--tone-text-sub); margin-bottom: 2rem; min-height: 1rem; }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 1rem;
+            width: 100%;
+            max-width: 780px;
+            margin-bottom: 2.5rem;
+        }
+
+        .card {
+            border: 1px solid var(--tone-border);
+            border-radius: 8px;
+            background-color: var(--tone-surface);
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .card.highlight { border-color: var(--tone-correct); }
+
+        .card h2 { font-size: 1rem; }
+
+        .card .note { font-size: 0.75rem; color: var(--tone-text-sub); line-height: 1.45; flex: 1; }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            padding: 0.6rem 1rem;
+            border-radius: 9999px;
+            background-color: var(--tone-correct);
+            color: #ffffff;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: opacity 0.15s;
+        }
+
+        .btn:hover { opacity: 0.9; }
+
+        .btn.secondary {
+            background: transparent;
+            border: 1px solid var(--tone-border-strong);
+            color: var(--tone-text);
+        }
+
+        .btn.disabled { opacity: 0.4; pointer-events: none; }
+
+        .size { font-weight: 400; font-size: 0.6875rem; opacity: 0.85; }
+
+        .phone {
+            max-width: 640px;
+            text-align: center;
+            font-size: 0.8125rem;
+            color: var(--tone-text-sub);
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+
+        .phone strong { color: var(--tone-text); }
+
+        .links { display: flex; gap: 1.5rem; font-size: 0.8125rem; }
+
+        .links a { color: var(--tone-text-sub); }
+
+        .links a:hover { color: var(--tone-text); }
+
+        #status { font-size: 0.8125rem; color: var(--tone-text-sub); margin-bottom: 2rem; display: none; }
+    </style>
+</head>
+<body>
+    <div class="logo" aria-hidden="true">
+        <span>t</span><span>r</span><span>i</span><span>a</span><span>d</span>
+    </div>
+
+    <h1>Get Triad for desktop</h1>
+    <p class="sub">The same daily puzzle, in a native app. Works fully offline.</p>
+    <p class="version" id="version"></p>
+
+    <p id="status"></p>
+
+    <div class="cards" id="cards">
+        <div class="card" data-os="mac">
+            <h2>macOS</h2>
+            <p class="note">Universal build for Apple Silicon and Intel. The app is unsigned — on first launch, right-click it and choose Open.</p>
+            <a class="btn disabled" data-asset="dmg" href="#">Fetching…</a>
+        </div>
+
+        <div class="card" data-os="windows">
+            <h2>Windows</h2>
+            <p class="note">If SmartScreen warns about an unsigned app, choose "More info" → "Run anyway".</p>
+            <a class="btn disabled" data-asset="msi" href="#">Fetching…</a>
+            <a class="btn secondary disabled" data-asset="exe" href="#">Fetching…</a>
+        </div>
+
+        <div class="card" data-os="linux">
+            <h2>Linux</h2>
+            <p class="note">AppImage runs anywhere (mark it executable); the .deb is for Debian and Ubuntu.</p>
+            <a class="btn disabled" data-asset="appimage" href="#">Fetching…</a>
+            <a class="btn secondary disabled" data-asset="deb" href="#">Fetching…</a>
+        </div>
+    </div>
+
+    <p class="phone">
+        <strong>On your phone?</strong> Triad installs straight from the browser — no store needed.<br />
+        Android: open the game and choose <strong>Install app</strong> from the browser menu.
+        iPhone: in Safari, tap Share → <strong>Add to Home Screen</strong>.
+    </p>
+
+    <div class="links">
+        <a href="/">← Play in your browser</a>
+        <a href="https://github.com/Low-Perch/triad-app/releases" target="_blank" rel="noopener noreferrer">All releases on GitHub</a>
+    </div>
+
+    <script>
+        const RELEASE_API = 'https://api.github.com/repos/Low-Perch/triad-app/releases/latest';
+
+        function classify(name) {
+            const n = name.toLowerCase();
+            if (n.endsWith('.dmg')) return 'dmg';
+            if (n.endsWith('.msi')) return 'msi';
+            if (n.endsWith('.exe')) return 'exe';
+            if (n.endsWith('.appimage')) return 'appimage';
+            if (n.endsWith('.deb')) return 'deb';
+            return null;
+        }
+
+        const LABELS = {
+            dmg: 'Download .dmg',
+            msi: 'Download .msi',
+            exe: 'Download installer (.exe)',
+            appimage: 'Download AppImage',
+            deb: 'Download .deb',
+        };
+
+        function fmtSize(bytes) {
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function detectOS() {
+            const ua = navigator.userAgent;
+            if (/Windows/i.test(ua)) return 'windows';
+            if (/Macintosh|Mac OS/i.test(ua)) return 'mac';
+            if (/Linux/i.test(ua) && !/Android/i.test(ua)) return 'linux';
+            return null;
+        }
+
+        const os = detectOS();
+        if (os) {
+            const card = document.querySelector(`.card[data-os="${os}"]`);
+            card.classList.add('highlight');
+            card.parentElement.prepend(card);
+        }
+
+        fetch(RELEASE_API)
+            .then((r) => {
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                return r.json();
+            })
+            .then((release) => {
+                document.getElementById('version').textContent =
+                    `${release.tag_name} · released ${new Date(release.published_at).toLocaleDateString()}`;
+
+                const byType = {};
+                for (const asset of release.assets) {
+                    const type = classify(asset.name);
+                    if (type && !byType[type]) byType[type] = asset;
+                }
+
+                document.querySelectorAll('[data-asset]').forEach((btn) => {
+                    const asset = byType[btn.dataset.asset];
+                    if (asset) {
+                        btn.href = asset.browser_download_url;
+                        btn.classList.remove('disabled');
+                        btn.innerHTML = `${LABELS[btn.dataset.asset]} <span class="size">${fmtSize(asset.size)}</span>`;
+                    } else {
+                        btn.remove();
+                    }
+                });
+            })
+            .catch((e) => {
+                console.error('Failed to fetch latest release:', e);
+                const status = document.getElementById('status');
+                status.style.display = 'block';
+                status.innerHTML =
+                    'Couldn’t load the latest release — grab it from <a href="https://github.com/Low-Perch/triad-app/releases/latest" target="_blank" rel="noopener noreferrer">GitHub releases</a> instead.';
+                document.querySelectorAll('[data-asset]').forEach((btn) => btn.remove());
+            });
+    </script>
+</body>
+</html>

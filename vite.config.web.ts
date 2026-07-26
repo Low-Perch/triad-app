@@ -14,6 +14,8 @@ export default defineConfig({
       workbox: {
         globPatterns: ["**/*.{js,css,html,wasm,svg,png,ico}"],
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
+        // Keep the SPA shell from swallowing the standalone download page
+        navigateFallbackDenylist: [/^\/download/],
       },
       manifest: {
         name: "Triad",
@@ -54,6 +56,12 @@ export default defineConfig({
 
   build: {
     outDir: "dist-web",
+    rollupOptions: {
+      input: {
+        main: new URL("./index.html", import.meta.url).pathname,
+        download: new URL("./download.html", import.meta.url).pathname,
+      },
+    },
   },
 
   server: {

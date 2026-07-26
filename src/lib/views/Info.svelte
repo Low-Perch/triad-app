@@ -1,5 +1,6 @@
 <script lang="ts">
     import { closeModal } from '../stores/modal.svelte'
+    import { isTauri, DESKTOP_DOWNLOAD_URL } from '../platform'
 </script>
 
 <div class="flex flex-col w-full h-full p-5 justify-center gap-3 items-center text-tone-text">
@@ -20,6 +21,15 @@
         <li>Any of the 3 clue fragments may be starting or ending fragments. Their order is random.</li>
         <li>If you feel stuck, use any of the 3 lifelines available in the top right corner.</li>
     </ul>
+
+    {#if !isTauri}
+        <p class="text-xs text-tone-text-sub text-center">
+            Prefer a native app?
+            <a class="download-link" href={DESKTOP_DOWNLOAD_URL} target="_blank" rel="noopener noreferrer">
+                Download Triad for desktop
+            </a>
+        </p>
+    {/if}
 
     <div class="flex justify-center h-full items-center">
         <button onclick={closeModal} class="modal-btn">
@@ -45,5 +55,14 @@
 
     .modal-btn:hover {
         opacity: 0.9;
+    }
+
+    .download-link {
+        color: var(--tone-text);
+        text-decoration: underline;
+    }
+
+    .download-link:hover {
+        color: var(--tone-correct);
     }
 </style>
