@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { generateShareText, handleNewGame as newGame } from '../actions'
+    import { copyShareText, handleNewGame as newGame } from '../actions'
     import { closeModal } from '../stores/modal.svelte'
     import { getStats, getSolveRate, getGuessDistribution } from '../stores/stats.svelte'
     import { getPuzzle } from '../stores/puzzle.svelte'
@@ -13,19 +13,13 @@
     let distribution = $derived(getGuessDistribution())
     let maxDistCount = $derived(Math.max(...distribution.map(d => d.count), 1))
 
-    let copied = $state(false)
+    let shareState = $state<'idle' | 'copied' | 'failed'>('idle')
 
     async function handleShare() {
         if (!puzzle.solved) return
 
-        const text = generateShareText()
-        try {
-            await navigator.clipboard.writeText(text)
-            copied = true
-            setTimeout(() => { copied = false }, 2000)
-        } catch {
-            console.error('Failed to copy to clipboard')
-        }
+        shareState = (await copyShareText()) ? 'copied' : 'failed'
+        setTimeout(() => { shareState = 'idle' }, 2000)
     }
 
     async function handleNewGame() {
@@ -70,7 +64,7 @@
     <div class="flex-col w-full">
         <p class="text-center font-semibold text-sm mb-2">Guess Distribution</p>
         <div class="dist-chart">
-            {#each distribution as row}
+            {#each distribution as row (row.label)}
                 <div class="dist-row">
                     <span class="dist-label">{row.label}</span>
                     <div class="dist-bar-bg">
@@ -96,7 +90,9 @@
         {/if}
 
         <button onclick={handleShare} class="primary-btn" disabled={!puzzle.solved}>
-            <span class="text-sm font-semibold text-white">{copied ? 'Copied!' : 'Share'}</span>
+            <span class="text-sm font-semibold text-white">
+                {shareState === 'copied' ? 'Copied!' : shareState === 'failed' ? 'Copy failed' : 'Share'}
+            </span>
         </button>
     </div>
 </div>

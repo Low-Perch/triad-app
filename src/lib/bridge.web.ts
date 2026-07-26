@@ -1,4 +1,4 @@
-import type { GameState, Input, SubmitResult, ClueResult } from './types'
+import type { GameState, Input, SubmitResult, ClueResult, History } from './types'
 import init, * as wasm from 'triad-wasm'
 
 const STORAGE_KEY = 'triad-game'
@@ -68,8 +68,28 @@ export async function newGame(): Promise<GameState> {
     return state
 }
 
+export async function archiveGame(date: string): Promise<GameState> {
+    const state = wasm.archive_game(date) as GameState
+    persist()
+    return state
+}
+
+export async function resumeDaily(): Promise<GameState> {
+    const state = wasm.resume_daily() as GameState
+    persist()
+    return state
+}
+
 export async function clearInput(): Promise<Input> {
     const input = wasm.clear_input() as Input
     persist()
     return input
+}
+
+export async function getHistory(): Promise<History> {
+    return wasm.get_history() as History
+}
+
+export async function copyText(text: string): Promise<void> {
+    await navigator.clipboard.writeText(text)
 }

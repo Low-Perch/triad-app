@@ -1,9 +1,10 @@
 <script lang="ts">
-    import { generateShareText } from '../actions'
+    import { copyShareText } from '../actions'
     import { getPuzzle } from '../stores/puzzle.svelte'
     import { getClues } from '../stores/clues.svelte'
     import { getGuesses } from '../stores/guesses.svelte'
     import { getStats } from '../stores/stats.svelte'
+    import { getGameMode } from '../stores/mode.svelte'
 
     let {
         mode,
@@ -31,18 +32,13 @@
 
     let solveUsed = $derived(clues.clues.find(c => c.id === 'solve')?.active)
     let guessDisplay = $derived(solveUsed ? 'X' : String(getGuesses()))
+    let isArchive = $derived(getGameMode() === 'archive')
 
-    let copied = $state(false)
+    let shareState = $state<'idle' | 'copied' | 'failed'>('idle')
 
     async function handleShare() {
-        const text = generateShareText()
-        try {
-            await navigator.clipboard.writeText(text)
-            copied = true
-            setTimeout(() => { copied = false }, 2000)
-        } catch {
-            console.error('Failed to copy to clipboard')
-        }
+        shareState = (await copyShareText()) ? 'copied' : 'failed'
+        setTimeout(() => { shareState = 'idle' }, 2000)
     }
 </script>
 
@@ -85,7 +81,9 @@
     </div>
 
     <div class="section" style="animation-delay: 450ms">
-        {#if mode === 'failed'}
+        {#if isArchive}
+            <p class="streak-label">Archive puzzle — stats unaffected</p>
+        {:else if mode === 'failed'}
             <p class="streak-label">Streak reset</p>
         {:else if stats.currentStreak > 0}
             <p class="streak-label">Streak: {stats.currentStreak}</p>
@@ -97,14 +95,16 @@
             <span class="text-sm font-semibold">Stats</span>
         </button>
         <button class="action-btn" onclick={handleShare}>
-            <span class="text-sm font-semibold">{copied ? 'Copied!' : 'Share'}</span>
+            <span class="text-sm font-semibold">
+                {shareState === 'copied' ? 'Copied!' : shareState === 'failed' ? 'Copy failed' : 'Share'}
+            </span>
         </button>
         <button class="action-btn" onclick={onnewgame}>
             <span class="text-sm font-semibold">Next</span>
         </button>
     </div>
 
-    {#if mode === 'solved-today' && ondismiss}
+    {#if ondismiss}
         <button class="dismiss-link section" style="animation-delay: 650ms" onclick={ondismiss}>
             View Puzzle
         </button>

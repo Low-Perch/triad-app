@@ -17,6 +17,10 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(async () => null),
 }));
 
+vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
+  writeText: vi.fn(async () => {}),
+}));
+
 vi.mock("@tauri-apps/plugin-store", () => {
   const store = new Map<string, unknown>();
   return {

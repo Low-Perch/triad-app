@@ -5,6 +5,8 @@ import { setInput } from './stores/input.svelte'
 import { setKeys } from './stores/keys.svelte'
 import { getStats, setStats } from './stores/stats.svelte'
 import { getGuesses, setGuesses } from './stores/guesses.svelte'
+import { setGameMode } from './stores/mode.svelte'
+import type { GameState } from './types'
 
 export function generateShareText(): string {
     const clues = getClues()
@@ -30,12 +32,34 @@ export function generateShareText(): string {
     return lines.join('\n')
 }
 
-export async function handleNewGame() {
-    const game = await bridge.newGame()
+export async function copyShareText(): Promise<boolean> {
+    try {
+        await bridge.copyText(generateShareText())
+        return true
+    } catch (e) {
+        console.error('Failed to copy share text:', e)
+        return false
+    }
+}
+
+export function hydrateGame(game: GameState) {
     setPuzzle(game.puzzle)
     setClues(game.clues)
     setInput(game.input)
     setKeys(game.keys)
     setStats(game.stats)
     setGuesses(game.guesses)
+    setGameMode(game.mode)
+}
+
+export async function handleNewGame() {
+    hydrateGame(await bridge.newGame())
+}
+
+export async function handleArchiveGame(date: string) {
+    hydrateGame(await bridge.archiveGame(date))
+}
+
+export async function handleResumeDaily() {
+    hydrateGame(await bridge.resumeDaily())
 }

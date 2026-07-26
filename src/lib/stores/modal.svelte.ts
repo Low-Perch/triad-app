@@ -1,4 +1,4 @@
-export type ModalView = "info" | "stats"
+export type ModalView = "info" | "stats" | "archive"
 export type Modal = { visible: boolean; view: ModalView | null }
 
 export const INIT_MODAL: Modal = { visible: false, view: null }

@@ -1,7 +1,11 @@
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import * as bridge from '$lib/bridge'
 
-export async function registerLifecycleHooks(): Promise<(() => void)[]> {
+export type LifecycleHandlers = {
+    onResume?: () => void
+}
+
+export async function registerLifecycleHooks(handlers: LifecycleHandlers = {}): Promise<(() => void)[]> {
     const appWindow = getCurrentWebviewWindow()
     const cleanups: (() => void)[] = []
 
@@ -11,8 +15,12 @@ export async function registerLifecycleHooks(): Promise<(() => void)[]> {
         })
         cleanups.push(unlistenClose)
 
-        const unlistenFocus = await appWindow.onFocusChanged(async () => {
-            await bridge.saveGame()
+        const unlistenFocus = await appWindow.onFocusChanged(async ({ payload: focused }) => {
+            if (focused) {
+                handlers.onResume?.()
+            } else {
+                await bridge.saveGame()
+            }
         })
         cleanups.push(unlistenFocus)
     } catch (e) {
