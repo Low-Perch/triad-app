@@ -54,13 +54,18 @@ pub const MAX_GUESSES: u32 = 6;
 pub fn submit_solution(state: &mut GameState) -> (bool, bool) {
     state.guesses += 1;
     let solved = valid_solution(&state.input.keys, &state.puzzle.key);
+    // Archive games are stat-neutral: no solved count, streak, or distribution
+    let counts_stats = state.mode != GameMode::Archive;
 
     if solved {
         state.input.state = InputState::Correct;
         mark_puzzle_solved(state);
         update_puzzle_state(state, PuzzleState::Solution);
-        record_puzzle_solved(state);
-        record_guess_distribution(state);
+        if counts_stats {
+            record_puzzle_solved(state);
+            record_guess_distribution(state);
+        }
+        record_day_result(state, true);
         return (true, false);
     }
 
@@ -73,7 +78,10 @@ pub fn submit_solution(state: &mut GameState) -> (bool, bool) {
         state.input.disabled = true;
         mark_puzzle_solved(state);
         update_puzzle_state(state, PuzzleState::Solution);
-        state.stats.current_streak = 0;
+        if counts_stats {
+            state.stats.current_streak = 0;
+        }
+        record_day_result(state, false);
     } else {
         state.input.state = InputState::Incorrect;
     }
@@ -144,9 +152,12 @@ pub fn solve_puzzle(state: &mut GameState) {
     mark_puzzle_solved(state);
     update_puzzle_state(state, PuzzleState::Solution);
 
-    // Counts as a loss — reset streak, no solved++
-    state.stats.current_streak = 0;
-    state.stats.solve_clue_count += 1;
+    // Counts as a loss — reset streak, no solved++ (archive games stay stat-neutral)
+    if state.mode != GameMode::Archive {
+        state.stats.current_streak = 0;
+        state.stats.solve_clue_count += 1;
+    }
+    record_day_result(state, false);
 }
 
 // --- Keys operations ---
@@ -167,6 +178,73 @@ pub fn disable_keys(state: &mut GameState) {
 
     state.keys.disabled_keys = shuffled.into_iter().take(13).collect();
     state.keys.keys_disabled = true;
+}
+
+// --- History operations ---
+
+/// Records the outcome of a dated (daily or archive) puzzle into `history`.
+/// A solved record is never downgraded: replays only overwrite an unsolved
+/// entry, so a solve as the live daily keeps its `daily` flag over later
+/// archive replays.
+pub fn record_day_result(state: &mut GameState, solved: bool) {
+    if state.mode == GameMode::Random {
+        return;
+    }
+    let Some(number) = state.puzzle.puzzle_number else {
+        return;
+    };
+    let date = generator::date_string_from_number(number);
+
+    if state.history.get(&date).is_some_and(|r| r.solved) {
+        return;
+    }
+    state.history.insert(
+        date,
+        DayRecord {
+            solved,
+            guesses: state.guesses,
+            daily: state.mode == GameMode::Daily,
+            perfect: solved && state.guesses == 1 && state.clues.used == 0,
+        },
+    );
+}
+
+/// One-time migration for saves that predate per-date history: a current
+/// streak of N means the last N consecutive dailies were solved, so those
+/// days are reconstructable even though nothing else is. The streak ends at
+/// today when the live daily is already solved, otherwise at yesterday.
+/// Backfilled records use `guesses: 0` (impossible normally) as an
+/// "unknown detail" marker. No-op once any history exists.
+pub fn backfill_streak_history(state: &mut GameState, today_number: u32) {
+    if !state.history.is_empty() || state.stats.current_streak == 0 {
+        return;
+    }
+
+    // Today's daily may be the live game or stashed behind an archive/random game
+    let daily_solved_today = if is_daily_game(state) {
+        state.puzzle.solved
+    } else {
+        state
+            .daily_snapshot
+            .as_ref()
+            .is_some_and(|snap| snap.puzzle.solved)
+    };
+    let end = if daily_solved_today {
+        today_number
+    } else {
+        let Some(yesterday) = today_number.checked_sub(1) else {
+            return;
+        };
+        yesterday
+    };
+
+    for i in 0..state.stats.current_streak {
+        let Some(number) = end.checked_sub(i) else { break };
+        state.history.insert(
+            generator::date_string_from_number(number),
+            DayRecord { solved: true, guesses: 0, daily: true, perfect: false },
+        );
+    }
 }
 
 // --- Stats operations ---
@@ -195,12 +273,45 @@ pub fn mark_puzzle_solved(state: &mut GameState) {
 
 // --- Game lifecycle ---
 
-/// Resets game state for a new puzzle while preserving stats.
-/// If the previous puzzle was not solved, resets the current streak.
-pub fn new_game(state: &mut GameState) {
-    if !state.puzzle.solved {
-        state.stats.current_streak = 0;
+/// True when the current game is the actual daily (not random or archive).
+/// The `puzzle_number` check keeps pre-`mode` saves of random games from
+/// being mistaken for dailies.
+pub fn is_daily_game(state: &GameState) -> bool {
+    state.mode == GameMode::Daily && state.puzzle.puzzle_number.is_some()
+}
+
+/// Stashes the daily so it survives an archive/random game and can be
+/// restored with `resume_daily`. No-op unless the daily is the live game.
+pub fn stash_daily(state: &mut GameState) {
+    if !is_daily_game(state) {
+        return;
     }
+    state.daily_snapshot = Some(DailySnapshot {
+        puzzle: state.puzzle.clone(),
+        input: state.input.clone(),
+        clues: state.clues.clone(),
+        keys: state.keys.clone(),
+        guesses: state.guesses,
+    });
+}
+
+/// Restores the stashed daily. No-op if there is nothing stashed.
+pub fn resume_daily(state: &mut GameState) {
+    if let Some(snap) = state.daily_snapshot.take() {
+        state.puzzle = snap.puzzle;
+        state.input = snap.input;
+        state.clues = snap.clues;
+        state.keys = snap.keys;
+        state.guesses = snap.guesses;
+        state.mode = GameMode::Daily;
+    }
+}
+
+/// Resets game state for a new random puzzle while preserving stats.
+/// The daily is stashed, not abandoned — any streak penalty for an
+/// unfinished daily is decided at day rollover.
+pub fn new_game(state: &mut GameState) {
+    stash_daily(state);
 
     let previous_key = state.puzzle.key.to_lowercase();
 
@@ -218,6 +329,7 @@ pub fn new_game(state: &mut GameState) {
     state.clues = Clues::default();
     state.keys = Keys::default();
     state.guesses = 0;
+    state.mode = GameMode::Random;
 }
 
 /// Sets up initial game state with the daily puzzle for the given puzzle number.
@@ -236,6 +348,7 @@ pub fn initialize_with_daily_puzzle(state: &mut GameState, puzzle_number: u32) {
     state.clues = Clues::default();
     state.keys = Keys::default();
     state.guesses = 0;
+    state.mode = GameMode::Daily;
 }
 
 /// Clears input keys after incorrect guess, preserving locked last position.
@@ -734,14 +847,119 @@ mod tests {
     }
 
     #[test]
-    fn new_game_resets_streak_when_unsolved() {
+    fn new_game_stashes_daily_and_preserves_streak() {
         let mut state = default_state();
         state.stats.current_streak = 5;
         state.puzzle.solved = false;
+        state.puzzle.puzzle_number = Some(42);
+        state.guesses = 2;
 
         new_game(&mut state);
 
-        assert_eq!(state.stats.current_streak, 0);
+        // Streak penalty is decided at rollover, not here
+        assert_eq!(state.stats.current_streak, 5);
+        assert_eq!(state.mode, GameMode::Random);
+        let snap = state.daily_snapshot.as_ref().expect("daily should be stashed");
+        assert_eq!(snap.puzzle.puzzle_number, Some(42));
+        assert_eq!(snap.guesses, 2);
+        assert!(!snap.puzzle.solved);
+    }
+
+    #[test]
+    fn new_game_does_not_stash_non_daily() {
+        let mut state = default_state();
+        state.puzzle.puzzle_number = None; // random game
+
+        new_game(&mut state);
+
+        assert!(state.daily_snapshot.is_none());
+    }
+
+    #[test]
+    fn new_game_keeps_existing_snapshot() {
+        let mut state = default_state();
+        state.puzzle.puzzle_number = Some(42);
+        new_game(&mut state); // stashes daily #42, now a random game
+
+        new_game(&mut state); // random → random
+
+        let snap = state.daily_snapshot.as_ref().unwrap();
+        assert_eq!(snap.puzzle.puzzle_number, Some(42));
+    }
+
+    #[test]
+    fn resume_daily_restores_stashed_game() {
+        let mut state = default_state();
+        state.puzzle.puzzle_number = Some(42);
+        state.guesses = 3;
+        let daily_key = state.puzzle.key.clone();
+        new_game(&mut state);
+
+        resume_daily(&mut state);
+
+        assert_eq!(state.mode, GameMode::Daily);
+        assert_eq!(state.puzzle.puzzle_number, Some(42));
+        assert_eq!(state.puzzle.key, daily_key);
+        assert_eq!(state.guesses, 3);
+        assert!(state.daily_snapshot.is_none());
+    }
+
+    #[test]
+    fn resume_daily_noop_without_snapshot() {
+        let mut state = default_state();
+        state.mode = GameMode::Random;
+        state.puzzle.puzzle_number = None;
+
+        resume_daily(&mut state);
+
+        assert_eq!(state.mode, GameMode::Random);
+    }
+
+    // --- archive mode stat-neutrality ---
+
+    #[test]
+    fn archive_solve_does_not_touch_stats() {
+        let mut state = default_state();
+        state.mode = GameMode::Archive;
+        state.stats.current_streak = 3;
+        state.input.keys = vec!["F", "I", "R", "M"].into_iter().map(String::from).collect();
+
+        let (solved, _) = submit_solution(&mut state);
+
+        assert!(solved);
+        assert!(state.puzzle.solved);
+        assert_eq!(state.stats.solved, 0);
+        assert_eq!(state.stats.current_streak, 3);
+        assert!(state.stats.guess_distribution.iter().all(|&c| c == 0));
+    }
+
+    #[test]
+    fn archive_exhaustion_does_not_reset_streak() {
+        let mut state = default_state();
+        state.mode = GameMode::Archive;
+        state.stats.current_streak = 3;
+        let wrong: Vec<String> = vec!["X", "Y", "Z", "W"].into_iter().map(String::from).collect();
+
+        for _ in 0..6 {
+            state.input.keys = wrong.clone();
+            state.input.state = InputState::Edit;
+            submit_solution(&mut state);
+        }
+
+        assert!(state.puzzle.solved); // answer revealed
+        assert_eq!(state.stats.current_streak, 3);
+    }
+
+    #[test]
+    fn archive_solve_clue_does_not_touch_stats() {
+        let mut state = default_state();
+        state.mode = GameMode::Archive;
+        state.stats.current_streak = 3;
+
+        solve_puzzle(&mut state);
+
+        assert_eq!(state.stats.current_streak, 3);
+        assert_eq!(state.stats.solve_clue_count, 0);
     }
 
     #[test]
@@ -776,6 +994,122 @@ mod tests {
 
         assert_eq!(state.clues.used, 0);
         assert!(state.clues.available);
+    }
+
+    // --- record_day_result tests ---
+
+    #[test]
+    fn exhaustion_records_failed_day() {
+        let mut state = default_state();
+        state.puzzle.puzzle_number = Some(42);
+        let date = generator::date_string_from_number(42);
+        let wrong: Vec<String> = vec!["X", "Y", "Z", "W"].into_iter().map(String::from).collect();
+
+        for _ in 0..6 {
+            state.input.keys = wrong.clone();
+            state.input.state = InputState::Edit;
+            submit_solution(&mut state);
+        }
+
+        let rec = state.history.get(&date).expect("loss recorded");
+        assert!(!rec.solved);
+        assert!(rec.daily);
+        assert_eq!(rec.guesses, 6);
+    }
+
+    #[test]
+    fn solve_clue_records_failed_day() {
+        let mut state = default_state();
+        state.puzzle.puzzle_number = Some(42);
+
+        solve_puzzle(&mut state);
+
+        let date = generator::date_string_from_number(42);
+        assert!(!state.history.get(&date).unwrap().solved);
+    }
+
+    #[test]
+    fn archive_solve_upgrades_failed_record() {
+        let mut state = default_state();
+        state.puzzle.puzzle_number = Some(42);
+        let date = generator::date_string_from_number(42);
+        state.history.insert(
+            date.clone(),
+            DayRecord { solved: false, guesses: 6, daily: true, perfect: false },
+        );
+        state.mode = GameMode::Archive;
+        state.input.keys = vec!["F", "I", "R", "M"].into_iter().map(String::from).collect();
+
+        submit_solution(&mut state);
+
+        let rec = state.history.get(&date).unwrap();
+        assert!(rec.solved);
+        assert!(!rec.daily);
+    }
+
+    #[test]
+    fn archive_replay_does_not_downgrade_solved_record() {
+        let mut state = default_state();
+        state.puzzle.puzzle_number = Some(42);
+        let date = generator::date_string_from_number(42);
+        state.history.insert(
+            date.clone(),
+            DayRecord { solved: true, guesses: 2, daily: true, perfect: false },
+        );
+        state.mode = GameMode::Archive;
+
+        solve_puzzle(&mut state);
+
+        let rec = state.history.get(&date).unwrap();
+        assert!(rec.solved);
+        assert!(rec.daily);
+        assert_eq!(rec.guesses, 2);
+    }
+
+    #[test]
+    fn first_guess_solve_without_clues_is_perfect() {
+        let mut state = default_state();
+        state.puzzle.puzzle_number = Some(42);
+        state.input.keys = vec!["F", "I", "R", "M"].into_iter().map(String::from).collect();
+
+        submit_solution(&mut state);
+
+        let date = generator::date_string_from_number(42);
+        assert!(state.history.get(&date).unwrap().perfect);
+    }
+
+    #[test]
+    fn solve_with_clue_or_extra_guess_is_not_perfect() {
+        // Clue used disqualifies even a first-guess solve
+        let mut state = default_state();
+        state.puzzle.puzzle_number = Some(42);
+        activate_clue(&mut state, "position");
+        state.input.keys = vec!["F", "I", "R", "M"].into_iter().map(String::from).collect();
+        submit_solution(&mut state);
+        let date = generator::date_string_from_number(42);
+        assert!(!state.history.get(&date).unwrap().perfect);
+
+        // Second-guess solve disqualifies
+        let mut state = default_state();
+        state.puzzle.puzzle_number = Some(42);
+        state.guesses = 1;
+        state.input.keys = vec!["F", "I", "R", "M"].into_iter().map(String::from).collect();
+        submit_solution(&mut state);
+        let rec = state.history.get(&date).unwrap();
+        assert!(rec.solved);
+        assert!(!rec.perfect);
+    }
+
+    #[test]
+    fn random_game_records_no_history() {
+        let mut state = default_state();
+        state.mode = GameMode::Random;
+        state.puzzle.puzzle_number = None;
+        state.input.keys = vec!["F", "I", "R", "M"].into_iter().map(String::from).collect();
+
+        submit_solution(&mut state);
+
+        assert!(state.history.is_empty());
     }
 
     // --- clear_input tests ---

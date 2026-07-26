@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -166,6 +168,49 @@ impl Default for Stats {
     }
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum GameMode {
+    Daily,
+    Random,
+    Archive,
+}
+
+impl Default for GameMode {
+    fn default() -> Self {
+        GameMode::Daily
+    }
+}
+
+/// Outcome of one dated puzzle, keyed by "YYYY-MM-DD" in `GameState::history`.
+/// `daily` is true when the puzzle was completed as that day's live daily
+/// (streak-eligible), false when completed later via the archive. `perfect`
+/// means solved on the first guess with no lifelines.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct DayRecord {
+    pub solved: bool,
+    pub guesses: u32,
+    pub daily: bool,
+    #[serde(default)]
+    pub perfect: bool,
+}
+
+/// Per-date results for daily/archive puzzles, keyed by "YYYY-MM-DD".
+pub type History = BTreeMap<String, DayRecord>;
+
+/// The daily game stashed away while an archive or random game is in
+/// progress, restorable via `resume_daily`.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct DailySnapshot {
+    pub puzzle: Puzzle,
+    pub input: Input,
+    pub clues: Clues,
+    pub keys: Keys,
+    pub guesses: u32,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct GameState {
@@ -178,6 +223,12 @@ pub struct GameState {
     pub puzzle_date: Option<String>,
     #[serde(default)]
     pub guesses: u32,
+    #[serde(default)]
+    pub mode: GameMode,
+    #[serde(default)]
+    pub daily_snapshot: Option<DailySnapshot>,
+    #[serde(default)]
+    pub history: History,
 }
 
 impl Default for GameState {
@@ -190,6 +241,9 @@ impl Default for GameState {
             stats: Stats::default(),
             puzzle_date: None,
             guesses: 0,
+            mode: GameMode::Daily,
+            daily_snapshot: None,
+            history: History::new(),
         }
     }
 }

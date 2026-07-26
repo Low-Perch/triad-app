@@ -7,7 +7,7 @@ use rand::thread_rng;
 use rand::Rng;
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::models::{Puzzle, PuzzleState};
 
@@ -30,9 +30,31 @@ fn get_dictionary() -> &'static Dictionary {
     })
 }
 
+/// A pinned daily puzzle: the exact key and words for one puzzle number,
+/// frozen so dictionary edits can't rewrite published puzzles.
+///
+/// `resources/pinned.json` is append-only for already-published dates —
+/// after a dictionary change, regenerate only the future tail with
+/// `cargo run -p triad-core --bin pin_puzzles -- <end-date>`. Hand-edit a
+/// specific entry only to retract a bad published puzzle.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PinnedEntry {
+    pub key: String,
+    pub words: Vec<String>,
+}
+
+static PINNED: OnceLock<HashMap<u32, PinnedEntry>> = OnceLock::new();
+
+fn get_pinned() -> &'static HashMap<u32, PinnedEntry> {
+    PINNED.get_or_init(|| {
+        let data_str = include_str!("resources/pinned.json");
+        serde_json::from_str(data_str).expect("Failed to parse pinned.json")
+    })
+}
+
 // --- Date helpers ---
 
-/// Epoch: 2026-01-01 00:00:00 UTC as Unix timestamp.
+/// Epoch: 2025-01-01 00:00:00 UTC as Unix timestamp.
 const EPOCH_SECS: u64 = 1_735_689_600;
 const SECS_PER_DAY: u64 = 86_400;
 
@@ -70,6 +92,48 @@ pub fn date_string_from_secs(now_secs: u64) -> String {
     let year = b * 100 + d - 4800 + m / 10;
 
     format!("{:04}-{:02}-{:02}", year, month, day)
+}
+
+/// Parses a "YYYY-MM-DD" date into days since the puzzle epoch.
+/// Returns None for malformed, non-canonical, or pre-epoch dates.
+pub fn days_since_epoch_from_date(date: &str) -> Option<u32> {
+    let mut parts = date.split('-');
+    let year: i64 = parts.next()?.parse().ok()?;
+    let month: i64 = parts.next()?.parse().ok()?;
+    let day: i64 = parts.next()?.parse().ok()?;
+    if parts.next().is_some() {
+        return None;
+    }
+
+    // Civil date → days since Unix epoch (Howard Hinnant's algorithm)
+    let y = if month <= 2 { year - 1 } else { year };
+    let era = (if y >= 0 { y } else { y - 399 }) / 400;
+    let yoe = y - era * 400;
+    let doy = (153 * (month + if month > 2 { -3 } else { 9 }) + 2) / 5 + day - 1;
+    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    let days = era * 146_097 + doe - 719_468;
+
+    if days < 0 {
+        return None;
+    }
+    let secs = (days as u64).checked_mul(SECS_PER_DAY)?;
+    if secs < EPOCH_SECS {
+        return None;
+    }
+
+    // Round-trip to reject out-of-range fields (e.g. 2025-02-30) and
+    // non-zero-padded input
+    if date_string_from_secs(secs) != date {
+        return None;
+    }
+
+    Some(((secs - EPOCH_SECS) / SECS_PER_DAY) as u32)
+}
+
+/// Returns the "YYYY-MM-DD" date for a puzzle number (days since the
+/// 2025-01-01 epoch). Inverse of `days_since_epoch_from_date`.
+pub fn date_string_from_number(number: u32) -> String {
+    date_string_from_secs(EPOCH_SECS + number as u64 * SECS_PER_DAY)
 }
 
 // --- Key/word selection (RNG-generic for deterministic daily puzzles) ---
@@ -237,17 +301,30 @@ pub fn generate_puzzle(exclude_key: Option<&str>) -> Puzzle {
 }
 
 /// Generates a deterministic daily puzzle for the given puzzle number.
-/// Same puzzle_number always produces the same puzzle.
+/// Same puzzle_number always produces the same puzzle. Pinned entries take
+/// precedence over live generation, so dictionary edits can't change them;
+/// numbers beyond the pinned range fall back to seeded generation.
 pub fn generate_daily_puzzle(puzzle_number: u32) -> Puzzle {
+    let (key, words) = match get_pinned().get(&puzzle_number) {
+        Some(entry) => (entry.key.clone(), entry.words.clone()),
+        None => generate_daily_key_and_words(puzzle_number),
+    };
+
+    let mut puzzle = build_puzzle(&key, &words);
+    puzzle.puzzle_number = Some(puzzle_number);
+    puzzle
+}
+
+/// Seeded key/word selection for a daily puzzle number — the fallback for
+/// unpinned numbers, and what the `pin_puzzles` bin runs to create pins.
+pub fn generate_daily_key_and_words(puzzle_number: u32) -> (String, Vec<String>) {
     let mut rng = ChaCha8Rng::seed_from_u64(puzzle_number as u64);
 
     loop {
         let key = get_random_key_with_rng(&mut rng, None);
         let words = select_three_words_with_rng(&mut rng, &key);
         if words.len() == 3 {
-            let mut puzzle = build_puzzle(&key, &words);
-            puzzle.puzzle_number = Some(puzzle_number);
-            return puzzle;
+            return (key, words);
         }
     }
 }
@@ -409,6 +486,85 @@ mod tests {
         assert!(!puzzle.solved);
     }
 
+    // --- pinned puzzle tests ---
+
+    #[test]
+    fn pinned_file_covers_epoch_onward() {
+        let pinned = get_pinned();
+        assert!(!pinned.is_empty(), "pinned.json should not be empty");
+        assert!(pinned.contains_key(&0), "puzzle #0 should be pinned");
+        // Contiguous from 0 — the archive can request any past number
+        let max = *pinned.keys().max().unwrap();
+        for n in 0..=max {
+            assert!(pinned.contains_key(&n), "gap in pinned range at #{n}");
+        }
+    }
+
+    #[test]
+    fn pinned_entries_build_valid_puzzles() {
+        for (n, entry) in get_pinned().iter() {
+            let key = entry.key.to_lowercase();
+            assert!(
+                key.len() == 3 || key.len() == 4,
+                "pinned #{n}: key '{key}' has bad length"
+            );
+            assert_eq!(entry.words.len(), 3, "pinned #{n}: expected 3 words");
+            for word in &entry.words {
+                let w = word.to_lowercase();
+                assert!(
+                    w.len() > key.len() && (w.starts_with(&key) || w.ends_with(&key)),
+                    "pinned #{n}: word '{word}' doesn't extend key '{key}'"
+                );
+            }
+
+            let puzzle = generate_daily_puzzle(*n);
+            assert_eq!(puzzle.key, entry.key.to_uppercase());
+            assert_eq!(puzzle.puzzle_number, Some(*n));
+        }
+    }
+
+    #[test]
+    fn pinned_entry_takes_precedence_over_generation() {
+        // The lookup path must serve the pin verbatim — this is what keeps
+        // dictionary edits from rewriting published puzzles
+        let entry = get_pinned().get(&0).expect("puzzle #0 should be pinned");
+        let puzzle = generate_daily_puzzle(0);
+        assert_eq!(puzzle.key, entry.key.to_uppercase());
+        let solution_words: Vec<String> = puzzle
+            .solution
+            .split(" / ")
+            .map(|w| w.to_lowercase())
+            .collect();
+        let pinned_words: Vec<String> =
+            entry.words.iter().map(|w| w.to_lowercase()).collect();
+        assert_eq!(solution_words, pinned_words);
+    }
+
+    #[test]
+    fn daily_puzzle_falls_back_beyond_pinned_range() {
+        let n = 4_000_000; // ~10,000 years out — never pinned
+        assert!(get_pinned().get(&n).is_none());
+        let p1 = generate_daily_puzzle(n);
+        let p2 = generate_daily_puzzle(n);
+        assert_eq!(p1.key, p2.key);
+        assert_eq!(p1.solution, p2.solution);
+        assert_eq!(p1.puzzle_number, Some(n));
+    }
+
+    #[test]
+    fn pinned_horizon_is_at_least_six_months_out() {
+        // Backstop for the scheduled extend-pins workflow: beyond the pinned
+        // range dailies fall back to live generation, so stale clients would
+        // diverge after a dict change — keep plenty of runway
+        let today = days_since_epoch(now_unix_secs());
+        let max = *get_pinned().keys().max().unwrap();
+        assert!(
+            max >= today + 183,
+            "pinned horizon #{max} is under 6 months past today (#{today}); \
+             run: cargo run -p triad-core --bin pin_puzzles -- <date 12+ months out>"
+        );
+    }
+
     #[test]
     fn today_as_days_since_epoch_is_reasonable() {
         let now = now_unix_secs();
@@ -417,6 +573,28 @@ mod tests {
         assert!(days > 0, "Days since epoch should be positive, got {}", days);
         // Should be less than ~3650 (10 years)
         assert!(days < 3650, "Days since epoch seems too large: {}", days);
+    }
+
+    #[test]
+    fn date_parsing_round_trips() {
+        assert_eq!(days_since_epoch_from_date("2025-01-01"), Some(0));
+        assert_eq!(days_since_epoch_from_date("2025-01-02"), Some(1));
+        assert_eq!(days_since_epoch_from_date("2026-01-01"), Some(365));
+
+        let secs = EPOCH_SECS + 500 * SECS_PER_DAY;
+        let date = date_string_from_secs(secs);
+        assert_eq!(days_since_epoch_from_date(&date), Some(500));
+    }
+
+    #[test]
+    fn date_parsing_rejects_invalid_input() {
+        assert_eq!(days_since_epoch_from_date("2024-12-31"), None); // pre-epoch
+        assert_eq!(days_since_epoch_from_date("2025-02-30"), None); // not a real day
+        assert_eq!(days_since_epoch_from_date("2025-13-01"), None);
+        assert_eq!(days_since_epoch_from_date("2025-1-1"), None); // not zero-padded
+        assert_eq!(days_since_epoch_from_date("2025-01-01-extra"), None);
+        assert_eq!(days_since_epoch_from_date("not-a-date"), None);
+        assert_eq!(days_since_epoch_from_date(""), None);
     }
 
     #[test]
