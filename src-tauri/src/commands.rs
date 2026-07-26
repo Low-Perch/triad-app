@@ -8,6 +8,13 @@ use crate::persistence;
 
 pub type AppState = Mutex<GameState>;
 
+/// Unix timestamp shifted by the local UTC offset so the engine's day
+/// boundaries fall at local midnight.
+fn local_shifted_secs() -> u64 {
+    let now = chrono::Local::now();
+    (now.timestamp() + now.offset().local_minus_utc() as i64).max(0) as u64
+}
+
 #[tauri::command]
 pub fn init_game(
     state: State<'_, AppState>,
@@ -16,8 +23,7 @@ pub fn init_game(
     let mut game_state = state.lock().map_err(|e| e.to_string())?;
 
     let saved = persistence::load_game(&app);
-    let now_secs = triad_core::generator::now_unix_secs();
-    let result = engine::init_game(saved, now_secs);
+    let result = engine::init_game(saved, local_shifted_secs());
     *game_state = result.clone();
     persistence::save_game(&app, &game_state)?;
 
@@ -98,6 +104,39 @@ pub fn new_game(
     persistence::save_game(&app, &game_state)?;
 
     Ok(result)
+}
+
+#[tauri::command]
+pub fn archive_game(
+    date: String,
+    state: State<'_, AppState>,
+    app: tauri::AppHandle,
+) -> Result<GameState, String> {
+    let mut game_state = state.lock().map_err(|e| e.to_string())?;
+
+    let result = engine::archive_game(&mut game_state, &date, local_shifted_secs())?;
+    persistence::save_game(&app, &game_state)?;
+
+    Ok(result)
+}
+
+#[tauri::command]
+pub fn resume_daily(
+    state: State<'_, AppState>,
+    app: tauri::AppHandle,
+) -> Result<GameState, String> {
+    let mut game_state = state.lock().map_err(|e| e.to_string())?;
+
+    let result = engine::resume_daily(&mut game_state);
+    persistence::save_game(&app, &game_state)?;
+
+    Ok(result)
+}
+
+#[tauri::command]
+pub fn get_history(state: State<'_, AppState>) -> Result<History, String> {
+    let game_state = state.lock().map_err(|e| e.to_string())?;
+    Ok(engine::get_history(&game_state))
 }
 
 #[tauri::command]
