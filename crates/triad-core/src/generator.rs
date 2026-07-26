@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::OnceLock;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -17,6 +17,14 @@ pub struct DictEntry {
     pub prefix: Vec<String>,
     #[serde(default)]
     pub suffix: Vec<String>,
+    /// Difficulty tier assigned at curation (`scripts/filter_dict.py`):
+    /// 1 easy / 2 medium / 3 hard, terciles of mean clue-word zipf.
+    #[serde(default = "default_tier")]
+    pub tier: u8,
+}
+
+fn default_tier() -> u8 {
+    2
 }
 
 pub type Dictionary = HashMap<String, DictEntry>;
@@ -136,10 +144,89 @@ pub fn date_string_from_number(number: u32) -> String {
     date_string_from_secs(EPOCH_SECS + number as u64 * SECS_PER_DAY)
 }
 
+// --- Fairness guard ---
+
+static WORD_SET: OnceLock<HashSet<String>> = OnceLock::new();
+
+/// Every clue word in the dictionary, lowercased — the universe a player
+/// can reasonably expect their answer to be judged against.
+fn get_word_set() -> &'static HashSet<String> {
+    WORD_SET.get_or_init(|| {
+        get_dictionary()
+            .values()
+            .flat_map(|e| e.prefix.iter().chain(e.suffix.iter()))
+            .map(|w| w.to_lowercase())
+            .collect()
+    })
+}
+
+/// Letter chunks of length `key_len` that complete `fragment` (on the given
+/// side) to a dictionary word.
+fn completions(fragment: &str, key_len: usize, key_at_start: bool) -> HashSet<String> {
+    let target_len = fragment.len() + key_len;
+    get_word_set()
+        .iter()
+        .filter(|w| w.len() == target_len)
+        .filter_map(|w| {
+            if key_at_start {
+                w.ends_with(fragment).then(|| w[..key_len].to_string())
+            } else {
+                w.starts_with(fragment).then(|| w[w.len() - key_len..].to_string())
+            }
+        })
+        .collect()
+}
+
+/// A selection is fair when the key is the ONLY chunk completing all three
+/// fragments to dictionary words (no alternate answer a player would be
+/// marked wrong on), and at most one fragment is <= 2 letters — tiny
+/// fragments ("-ed", "-s") constrain almost nothing and drive ambiguity.
+fn is_fair_selection(key: &str, words: &[String]) -> bool {
+    let key_lower = key.to_lowercase();
+    let key_len = key_lower.len();
+    let mut tiny_fragments = 0;
+    let mut candidates: Option<HashSet<String>> = None;
+
+    for word in words {
+        let w = word.to_lowercase();
+        let key_at_start = w.starts_with(&key_lower);
+        let fragment = if key_at_start {
+            &w[key_len..]
+        } else {
+            &w[..w.len() - key_len]
+        };
+        if fragment.len() <= 2 {
+            tiny_fragments += 1;
+        }
+        let c = completions(fragment, key_len, key_at_start);
+        candidates = Some(match candidates {
+            None => c,
+            Some(prev) => prev.intersection(&c).cloned().collect(),
+        });
+    }
+
+    tiny_fragments <= 1
+        && candidates.is_some_and(|c| c.len() == 1 && c.contains(&key_lower))
+}
+
+// --- Difficulty ---
+
+/// Difficulty tier for a daily puzzle number. The epoch (2025-01-01) was a
+/// Wednesday. NYT-style weekly ramp: Mon/Tue easy, Wed-Fri medium,
+/// Sat/Sun hard.
+pub fn tier_for_puzzle_number(puzzle_number: u32) -> u8 {
+    match (puzzle_number + 2) % 7 {
+        0 | 1 => 1,       // Mon, Tue
+        2 | 3 | 4 => 2,   // Wed, Thu, Fri
+        _ => 3,           // Sat, Sun
+    }
+}
+
 // --- Key/word selection (RNG-generic for deterministic daily puzzles) ---
 
-/// Returns sorted eligible keys from the dictionary.
-fn get_sorted_eligible_keys(exclude_key: Option<&str>) -> Vec<String> {
+/// Returns sorted eligible keys from the dictionary, optionally restricted
+/// to a difficulty tier.
+fn get_sorted_eligible_keys(exclude_key: Option<&str>, tier: Option<u8>) -> Vec<String> {
     let dict = get_dictionary();
     let mut keys: Vec<String> = dict
         .keys()
@@ -147,6 +234,7 @@ fn get_sorted_eligible_keys(exclude_key: Option<&str>) -> Vec<String> {
             let entry = &dict[k.as_str()];
             entry.prefix.len() + entry.suffix.len() >= 3
         })
+        .filter(|k| tier.map_or(true, |t| dict[k.as_str()].tier == t))
         .filter(|k| match exclude_key {
             Some(prev) => k.as_str() != prev,
             None => true,
@@ -157,10 +245,16 @@ fn get_sorted_eligible_keys(exclude_key: Option<&str>) -> Vec<String> {
     keys
 }
 
-/// Selects a random key using the provided RNG.
-fn get_random_key_with_rng<R: Rng>(rng: &mut R, exclude_key: Option<&str>) -> String {
-    let keys = get_sorted_eligible_keys(exclude_key);
-    keys.choose(rng)
+/// Selects a random key using the provided RNG. Falls back to the full key
+/// pool if the requested tier is empty (defensive — curation always
+/// populates all three tiers).
+fn get_random_key_with_rng<R: Rng>(rng: &mut R, exclude_key: Option<&str>, tier: Option<u8>) -> String {
+    let keys = get_sorted_eligible_keys(exclude_key, tier);
+    if let Some(key) = keys.choose(rng) {
+        return key.clone();
+    }
+    get_sorted_eligible_keys(exclude_key, None)
+        .choose(rng)
         .expect("Dictionary should have valid keys")
         .clone()
 }
@@ -168,7 +262,7 @@ fn get_random_key_with_rng<R: Rng>(rng: &mut R, exclude_key: Option<&str>) -> St
 /// Selects a random key from the dictionary, optionally excluding a specific key.
 fn get_random_key(exclude_key: Option<&str>) -> String {
     let mut rng = thread_rng();
-    get_random_key_with_rng(&mut rng, exclude_key)
+    get_random_key_with_rng(&mut rng, exclude_key, None)
 }
 
 /// Selects 3 unique words for the given key using the provided RNG.
@@ -294,7 +388,7 @@ pub fn generate_puzzle(exclude_key: Option<&str>) -> Puzzle {
     loop {
         let key = get_random_key(exclude_key);
         let words = select_three_words(&key);
-        if words.len() == 3 {
+        if words.len() == 3 && is_fair_selection(&key, &words) {
             return build_puzzle(&key, &words);
         }
     }
@@ -317,13 +411,16 @@ pub fn generate_daily_puzzle(puzzle_number: u32) -> Puzzle {
 
 /// Seeded key/word selection for a daily puzzle number — the fallback for
 /// unpinned numbers, and what the `pin_puzzles` bin runs to create pins.
+/// Difficulty follows the weekday ramp; selections must pass the fairness
+/// guard (unique solution, no tiny-fragment pileup).
 pub fn generate_daily_key_and_words(puzzle_number: u32) -> (String, Vec<String>) {
     let mut rng = ChaCha8Rng::seed_from_u64(puzzle_number as u64);
+    let tier = tier_for_puzzle_number(puzzle_number);
 
     loop {
-        let key = get_random_key_with_rng(&mut rng, None);
+        let key = get_random_key_with_rng(&mut rng, None, Some(tier));
         let words = select_three_words_with_rng(&mut rng, &key);
-        if words.len() == 3 {
+        if words.len() == 3 && is_fair_selection(&key, &words) {
             return (key, words);
         }
     }
@@ -454,6 +551,111 @@ mod tests {
                 assert!(!part.is_empty(), "Start fragment should not be empty");
             }
         }
+    }
+
+    // --- Difficulty / fairness tests ---
+
+    #[test]
+    fn weekday_tier_ramp_matches_calendar() {
+        // #0 = 2025-01-01, a Wednesday
+        assert_eq!(tier_for_puzzle_number(0), 2); // Wed
+        assert_eq!(tier_for_puzzle_number(1), 2); // Thu
+        assert_eq!(tier_for_puzzle_number(2), 2); // Fri
+        assert_eq!(tier_for_puzzle_number(3), 3); // Sat
+        assert_eq!(tier_for_puzzle_number(4), 3); // Sun
+        assert_eq!(tier_for_puzzle_number(5), 1); // Mon
+        assert_eq!(tier_for_puzzle_number(6), 1); // Tue
+        assert_eq!(tier_for_puzzle_number(7), 2); // Wed again
+    }
+
+    #[test]
+    fn dictionary_has_all_three_tiers() {
+        let dict = get_dictionary();
+        for t in 1..=3u8 {
+            assert!(
+                dict.values().any(|e| e.tier == t),
+                "no keys with tier {t} — rerun scripts/filter_dict.py"
+            );
+        }
+    }
+
+    #[test]
+    fn daily_generation_follows_weekday_tier() {
+        let dict = get_dictionary();
+        for n in 4_000_000..4_000_014 {
+            // beyond pinned range — exercises live generation
+            let (key, _) = generate_daily_key_and_words(n);
+            assert_eq!(
+                dict[&key].tier,
+                tier_for_puzzle_number(n),
+                "daily #{n} key '{key}' is off the weekday ramp"
+            );
+        }
+    }
+
+    #[test]
+    fn completions_finds_the_true_key() {
+        let dict = get_dictionary();
+        let mut checked = 0;
+        for (key, entry) in dict.iter() {
+            if checked >= 5 {
+                break;
+            }
+            if let Some(word) = entry.prefix.first() {
+                // prefix list: word ends with key
+                let w = word.to_lowercase();
+                let fragment = &w[..w.len() - key.len()];
+                assert!(
+                    completions(fragment, key.len(), false).contains(key.as_str()),
+                    "completions('{fragment}') should contain '{key}'"
+                );
+                checked += 1;
+            }
+        }
+        assert!(checked > 0);
+    }
+
+    #[test]
+    fn generated_selections_pass_fairness_guard() {
+        for n in 4_000_020..4_000_030 {
+            let (key, words) = generate_daily_key_and_words(n);
+            assert!(
+                is_fair_selection(&key, &words),
+                "daily #{n} ({key}: {words:?}) failed the fairness guard"
+            );
+        }
+    }
+
+    #[test]
+    fn fairness_guard_rejects_tiny_fragment_pileup() {
+        // Find a real key with two <=2-letter-fragment words; such a
+        // selection must be rejected regardless of uniqueness
+        let dict = get_dictionary();
+        for (key, entry) in dict.iter() {
+            let words: Vec<String> = entry
+                .prefix
+                .iter()
+                .chain(entry.suffix.iter())
+                .cloned()
+                .collect();
+            let tiny: Vec<String> = words
+                .iter()
+                .filter(|w| w.len() - key.len() <= 2)
+                .cloned()
+                .collect();
+            if tiny.len() >= 2 && words.len() >= 3 {
+                let mut selection = tiny[..2].to_vec();
+                let filler = words.iter().find(|w| !selection.contains(w)).unwrap();
+                selection.push(filler.clone());
+                assert!(
+                    !is_fair_selection(key, &selection),
+                    "selection {selection:?} for '{key}' has 2 tiny fragments, should be unfair"
+                );
+                return;
+            }
+        }
+        // Post-curation dictionary may legitimately contain no such key —
+        // nothing to assert in that case
     }
 
     // --- Daily puzzle tests ---
