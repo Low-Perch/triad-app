@@ -270,9 +270,11 @@
         --cal-gold-hi: #ffdf6b;
         --cal-gold-edge: #cf9d00;
         --cal-gold-num: #a87b06;
+        --cal-gold-ink: #6d5200;
         --cal-open-bg: #e4e7ea;
         --cal-open-edge: #d0d4d8;
         --cal-failed-edge: #a8adb2;
+        --cal-failed-ink: #1a1a1b;
     }
 
     :global(.dark) .calendar {
@@ -281,9 +283,11 @@
         --cal-gold-hi: #ffe27a;
         --cal-gold-edge: #c69f10;
         --cal-gold-num: #f5ca28;
+        --cal-gold-ink: #5f4700;
         --cal-open-bg: #2c2d2f;
         --cal-open-edge: #3a3a3c;
         --cal-failed-edge: #5e6062;
+        --cal-failed-ink: #ffffff;
     }
 
     .streak-line {
@@ -423,10 +427,15 @@
     }
 
     /* Perfect solves break from the green: a bright gold tile with a
-       darker gold edge and the corner sparkle */
+       darker gold edge and the corner sparkle. Dark amber ink — white
+       washes out against the gold. */
     .tile.solved.perfect {
         background: linear-gradient(135deg, var(--cal-gold-hi) 30%, var(--cal-gold) 70%);
         border-color: var(--cal-gold-edge);
+    }
+
+    .tile.solved.perfect .tile-glyph {
+        color: var(--cal-gold-ink);
     }
 
     .tile-spark {
@@ -435,14 +444,13 @@
         right: 6%;
         width: 28%;
         height: 28%;
-        color: #ffffff;
-        filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.3));
+        color: var(--cal-gold-ink);
     }
 
     .tile.failed {
         background: var(--tone-key);
         border: 2px solid var(--cal-failed-edge);
-        color: var(--tone-key-text);
+        color: var(--cal-failed-ink);
     }
 
     .tile.solved:hover:not(:disabled),
@@ -454,8 +462,8 @@
         font-size: 1.375rem;
         font-weight: 800;
         line-height: 1;
-        color: var(--tone-text-sub);
-        opacity: 0.65;
+        color: var(--tone-text);
+        opacity: 0.9;
     }
 
     .tile.open {
