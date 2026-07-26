@@ -23,7 +23,7 @@
             class="tile"
             style={revealing ? `--tile-index: ${i}` : ''}
         >
-            <p class="text-tone-text uppercase text-3xl font-bold">{key}</p>
+            <p class="text-tone-text uppercase text-3xl md:text-4xl font-bold">{key}</p>
 
             {#if showLock && i == input.keys.length - 1}
                 <svg viewBox="0 0 24 24" class="absolute bg-transparent -bottom-4 w-5 h-5 fill-tone-text-sub">
@@ -40,6 +40,13 @@
         border: 2px solid var(--tone-border);
         transition: scale .1s, border-color .2s, background-color .2s, transform .6s;
         transition-delay: 0s, .1s, .1s, 0s;
+    }
+
+    @media (min-width: 768px) {
+        .tile {
+            width: 4.5rem;
+            height: 4.5rem;
+        }
     }
 
     .tile.filled {

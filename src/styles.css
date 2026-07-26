@@ -14,6 +14,7 @@
     --tone-key-text: #1a1a1b;
     --tone-correct: #6aaa64;
     --tone-overlay: rgba(0, 0, 0, 0.5);
+    --tone-glow: rgba(26, 26, 27, 0.03);
 }
 
 .dark {
@@ -28,10 +29,16 @@
     --tone-key-text: #d7dadc;
     --tone-correct: #538d4e;
     --tone-overlay: rgba(0, 0, 0, 0.7);
+    --tone-glow: rgba(215, 218, 220, 0.045);
 }
 
 body {
     background-color: var(--tone-bg);
+    /* Subtle vignette behind the play column so wide-screen margins read
+       as an intentional frame rather than empty space */
+    background-image: radial-gradient(ellipse 70% 55% at 50% 38%, var(--tone-glow), transparent 70%);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
     color: var(--tone-text);
     height: 100vh;
     transition: background-color 0.2s, color 0.2s;

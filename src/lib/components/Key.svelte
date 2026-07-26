@@ -79,4 +79,19 @@
         width: 3.25rem;
         font-size: 0.7rem;
     }
+
+    @media (min-width: 768px) {
+        .game-key {
+            height: 3.5rem;
+            width: 2.75rem;
+        }
+
+        .game-key span {
+            font-size: 0.875rem;
+        }
+
+        .game-key.wide {
+            width: 4.25rem;
+        }
+    }
 </style>

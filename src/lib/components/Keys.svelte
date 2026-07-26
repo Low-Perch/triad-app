@@ -15,13 +15,13 @@
         {/each}
     </div>
 
-    <div class="flex justify-evenly gap-x-1.5 mx-4 items-center my-1.5">
+    <div class="flex justify-center gap-x-1.5 items-center my-1.5">
         {#each secondRow as key (key)}
             <Key key={key} disabled={disabledKeys.includes(key)} />
         {/each}
     </div>
 
-    <div class="flex justify-evenly gap-x-1.5 items-center w-full">
+    <div class="flex justify-center gap-x-1.5 items-center">
         <Key key="go" width={12} />
 
         {#each lastRow as key (key)}
@@ -33,17 +33,22 @@
 </div>
 
 <style>
+    /* In flow: margin-top auto pins it to the bottom of the game area on
+       small screens; wide screens join it to the centered stack instead */
     .keys-container {
         display: flex;
         flex-direction: column;
         align-items: center;
         width: 100%;
         max-width: 400px;
-        margin: 0 auto;
+        margin: auto auto 0.5rem;
         padding: 0 0.5rem;
-        position: absolute;
-        bottom: 0.5rem;
-        left: 50%;
-        transform: translateX(-50%);
+    }
+
+    @media (min-width: 768px) {
+        .keys-container {
+            max-width: 520px;
+            margin: 2.5rem auto 0;
+        }
     }
 </style>

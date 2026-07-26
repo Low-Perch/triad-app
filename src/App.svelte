@@ -3,15 +3,15 @@
 
     import * as bridge from '$lib/bridge'
     import { registerLifecycleHooks } from '$lib/lifecycle'
-    import { handleNewGame } from './lib/actions'
+    import { handleNewGame, handleArchiveGame, handleResumeDaily, hydrateGame } from './lib/actions'
 
     import { getModal, openModal } from './lib/stores/modal.svelte'
-    import { getKeys, setKeys } from './lib/stores/keys.svelte'
-    import { setClues } from './lib/stores/clues.svelte'
+    import { getKeys } from './lib/stores/keys.svelte'
     import { getPuzzle, setPuzzle } from './lib/stores/puzzle.svelte'
     import { setInput, getInput } from './lib/stores/input.svelte'
     import { setStats } from './lib/stores/stats.svelte'
     import { getGuesses, setGuesses } from './lib/stores/guesses.svelte'
+    import { getGameMode } from './lib/stores/mode.svelte'
     import { initTheme } from './lib/stores/theme.svelte'
 
     import Keys from './lib/components/Keys.svelte'
@@ -19,8 +19,11 @@
     import Clues from './lib/components/Clues.svelte'
     import Input from './lib/components/Input.svelte'
     import Header from './lib/components/Header.svelte'
+    import SideRail from './lib/components/SideRail.svelte'
     import SplashScreen from './lib/components/SplashScreen.svelte'
     import ResultScreen from './lib/components/ResultScreen.svelte'
+
+    import { localDateString } from './lib/date'
 
     type AppPhase = 'loading' | 'splash' | 'solved-today' | 'revealing' | 'playing' | 'congrats' | 'failed' | 'error'
 
@@ -30,6 +33,8 @@
     const puzzle = getPuzzle()
 
     let phase = $state<AppPhase>('loading')
+    let puzzleDate: string | null = null
+    let hooksRegistered = false
 
     async function handleKeyboard(e: KeyboardEvent) {
         if (phase !== 'playing') return
@@ -72,6 +77,7 @@
 
     let puzzleText = $derived(puzzle[puzzle.state])
     let disabledKeys = $derived(keys.disabledKeys)
+    let gameMode = $derived(getGameMode())
 
     let lifecycleCleanups: (() => void)[] = []
 
@@ -95,22 +101,62 @@
         startReveal()
     }
 
+    async function handleBackToDaily() {
+        await handleResumeDaily()
+        phase = puzzle.solved ? 'solved-today' : 'playing'
+    }
+
+    async function handlePlayArchiveDate(date: string) {
+        try {
+            await handleArchiveGame(date)
+            startReveal()
+        } catch (e) {
+            console.error('Failed to load archive puzzle:', e)
+        }
+    }
+
+    let archiveParamChecked = false
+
+    // Web deep link: ?date=YYYY-MM-DD opens that day's archive puzzle.
+    // Stripped after applying so a reload resumes instead of restarting.
+    async function applyArchiveParam() {
+        if (archiveParamChecked) return
+        archiveParamChecked = true
+
+        const date = new URLSearchParams(window.location.search).get('date')
+        if (!date) return
+        window.history.replaceState(null, '', window.location.pathname)
+
+        try {
+            await handleArchiveGame(date)
+        } catch (e) {
+            console.error('Failed to load archive puzzle from URL:', e)
+        }
+    }
+
+    function checkRollover() {
+        if (puzzleDate && localDateString() !== puzzleDate) {
+            init()
+        }
+    }
+
     async function init() {
         try {
             const game = await bridge.initGame()
-            setPuzzle(game.puzzle)
-            setClues(game.clues)
-            setInput(game.input)
-            setKeys(game.keys)
-            setStats(game.stats)
-            setGuesses(game.guesses)
+            hydrateGame(game)
+            puzzleDate = game.puzzleDate
         } catch (e) {
             console.error('Failed to load game state:', e)
             phase = 'error'
             return
         }
 
-        lifecycleCleanups = await registerLifecycleHooks()
+        await applyArchiveParam()
+
+        if (!hooksRegistered) {
+            lifecycleCleanups = await registerLifecycleHooks({ onResume: checkRollover })
+            hooksRegistered = true
+        }
 
         phase = 'splash'
     }
@@ -120,8 +166,10 @@
         init()
 
         window.addEventListener('keydown', handleKeyboard)
+        const rolloverTimer = setInterval(checkRollover, 60_000)
 
         return () => {
+            clearInterval(rolloverTimer)
             lifecycleCleanups.forEach(fn => fn())
             window.removeEventListener('keydown', handleKeyboard)
         }
@@ -147,19 +195,31 @@
             mode={phase}
             onviewstats={() => openModal('stats')}
             onnewgame={handleNewGameFromResult}
-            ondismiss={phase === 'solved-today' ? () => { phase = 'playing' } : undefined}
+            ondismiss={() => { phase = 'playing' }}
         />
     {:else if phase === 'revealing' || phase === 'playing'}
         <Header />
-        {#if puzzle.puzzleNumber !== null}
-            <p class="text-right pr-3 pt-1 text-xs text-tone-text-sub">#{puzzle.puzzleNumber}</p>
-        {/if}
-        <Clues text={puzzleText} revealing={phase === 'revealing'} />
-        <Input revealing={phase === 'revealing'} />
-        <p class="guess-counter">{getGuesses()}/6</p>
-        {#if !puzzle.solved}
-            <Keys {disabledKeys} />
-        {/if}
+        <div class="game-area">
+            {#if puzzle.puzzleNumber !== null || gameMode !== 'daily'}
+                <div class="flex justify-between items-center w-full px-3 pt-1">
+                    {#if gameMode !== 'daily'}
+                        <button class="today-link" onclick={handleBackToDaily}>‹ Today's puzzle</button>
+                    {:else}
+                        <span></span>
+                    {/if}
+                    {#if puzzle.puzzleNumber !== null}
+                        <p class="text-xs md:text-sm text-tone-text-sub">{gameMode === 'archive' ? 'Archive #' : '#'}{puzzle.puzzleNumber}</p>
+                    {/if}
+                </div>
+            {/if}
+            <Clues text={puzzleText} revealing={phase === 'revealing'} />
+            <Input revealing={phase === 'revealing'} />
+            <p class="guess-counter">{getGuesses()}/6</p>
+            {#if !puzzle.solved}
+                <Keys {disabledKeys} />
+            {/if}
+        </div>
+        <SideRail onplaydate={handlePlayArchiveDate} />
     {/if}
 </main>
 
@@ -191,6 +251,38 @@
 
     .action-btn:hover {
         opacity: 0.9;
+    }
+
+    .game-area {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: 1;
+        min-height: 0;
+        width: 100%;
+    }
+
+    /* Wide screens: the whole stack reads as one centered group; the
+       keyboard joins the flow instead of pinning to the bottom */
+    @media (min-width: 768px) {
+        .game-area {
+            justify-content: center;
+            padding-bottom: 3rem;
+        }
+    }
+
+    .today-link {
+        background: none;
+        border: none;
+        padding: 0;
+        font-size: 0.75rem;
+        color: var(--tone-text-sub);
+        cursor: pointer;
+        text-decoration: underline;
+    }
+
+    .today-link:hover {
+        color: var(--tone-text);
     }
 
     .guess-counter {

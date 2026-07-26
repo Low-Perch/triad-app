@@ -3,10 +3,10 @@
 </script>
 
 <div
-    class="relative flex-col mt-12 w-full uppercase justify-center items-center mx-auto"
+    class="relative flex-col mt-12 md:mt-0 w-full uppercase justify-center items-center mx-auto"
     class:clue-reveal={revealing}
 >
-    <p class="text-2xl text-center tracking-wider font-semibold text-tone-text">{text}</p>
+    <p class="text-2xl md:text-3xl text-center tracking-wider font-semibold text-tone-text">{text}</p>
 </div>
 
 <style>
