@@ -5,7 +5,8 @@ import { setInput } from './stores/input.svelte'
 import { setKeys } from './stores/keys.svelte'
 import { getStats, setStats } from './stores/stats.svelte'
 import { getGuesses, setGuesses } from './stores/guesses.svelte'
-import { setGameMode } from './stores/mode.svelte'
+import { setGameMode, setDayRecord } from './stores/mode.svelte'
+import { dateStringFromPuzzleNumber } from './date'
 import type { GameState } from './types'
 
 export function generateShareText(): string {
@@ -50,6 +51,8 @@ export function hydrateGame(game: GameState) {
     setStats(game.stats)
     setGuesses(game.guesses)
     setGameMode(game.mode)
+    const number = game.puzzle.puzzleNumber
+    setDayRecord(number !== null ? game.history[dateStringFromPuzzleNumber(number)] ?? null : null)
 }
 
 export async function handleNewGame() {

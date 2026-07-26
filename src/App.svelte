@@ -11,7 +11,7 @@
     import { setInput, getInput } from './lib/stores/input.svelte'
     import { setStats } from './lib/stores/stats.svelte'
     import { getGuesses, setGuesses } from './lib/stores/guesses.svelte'
-    import { getGameMode } from './lib/stores/mode.svelte'
+    import { getGameMode, getDayRecord } from './lib/stores/mode.svelte'
     import { initTheme } from './lib/stores/theme.svelte'
 
     import Keys from './lib/components/Keys.svelte'
@@ -92,6 +92,15 @@
     let puzzleText = $derived(puzzle[puzzle.state])
     let disabledKeys = $derived(keys.disabledKeys)
     let gameMode = $derived(getGameMode())
+
+    // Prior solve of the archive day being replayed, if any. `guesses: 0`
+    // is the backfill marker for solves whose detail is unknown.
+    let replaySummary = $derived.by(() => {
+        const record = getDayRecord()
+        if (gameMode !== 'archive' || !record?.solved) return null
+        if (record.perfect) return 'Solved perfectly'
+        return record.guesses > 0 ? `Solved in ${record.guesses}/6` : 'Solved'
+    })
 
     let lifecycleCleanups: (() => void)[] = []
 
@@ -243,9 +252,19 @@
                     {/if}
                 </div>
             {/if}
+            {#if replaySummary}
+                <p class="replay-banner" role="status">
+                    <span class="replay-check" aria-hidden="true">✓</span>
+                    <span>{replaySummary} — replays don't change your record</span>
+                </p>
+            {/if}
             <Clues text={puzzleText} revealing={phase === 'revealing'} />
             <Input revealing={phase === 'revealing'} />
-            <p class="guess-counter">{getGuesses()}/6</p>
+            <div class="guess-pips" role="img" aria-label="{getGuesses()} of 6 guesses used">
+                {#each Array(6) as _, i (i)}
+                    <span class="pip" class:used={i < getGuesses()}></span>
+                {/each}
+            </div>
             {#if !puzzle.solved}
                 <Keys {disabledKeys} />
             {/if}
@@ -353,12 +372,47 @@
         color: var(--tone-text);
     }
 
-    .guess-counter {
-        text-align: center;
+    .guess-pips {
+        display: flex;
+        gap: 0.4rem;
+        justify-content: center;
+        padding: 0.15rem 0;
+        margin-bottom: 0.35rem;
+    }
+
+    .pip {
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 50%;
+        border: 2px solid var(--tone-border-strong);
+    }
+
+    .pip.used {
+        background-color: var(--tone-border-strong);
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+        .pip {
+            transition: background-color 0.15s ease;
+        }
+    }
+
+    .replay-banner {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        margin: 0.5rem 0.75rem 0;
+        padding: 0.375rem 0.625rem;
+        border: 1px solid color-mix(in srgb, var(--tone-correct) 40%, transparent);
+        border-radius: 0.5rem;
+        background-color: color-mix(in srgb, var(--tone-correct) 12%, var(--tone-bg));
         font-size: 0.75rem;
-        font-weight: 600;
-        color: var(--tone-text-sub);
-        margin-bottom: 0.25rem;
+        color: var(--tone-text);
+    }
+
+    .replay-check {
+        color: var(--tone-correct);
+        font-weight: 700;
     }
 
     .error-screen {

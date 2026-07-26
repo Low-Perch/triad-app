@@ -1,9 +1,13 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { generateShareText } from "../lib/actions";
+import { generateShareText, hydrateGame } from "../lib/actions";
 import { setPuzzle, INIT_PUZZLE } from "../lib/stores/puzzle.svelte";
 import { setClues, INIT_CLUES } from "../lib/stores/clues.svelte";
 import { setStats, INIT_STATS } from "../lib/stores/stats.svelte";
 import { setGuesses } from "../lib/stores/guesses.svelte";
+import { setKeys, INIT_KEYS } from "../lib/stores/keys.svelte";
+import { setInput, INIT_INPUT } from "../lib/stores/input.svelte";
+import { getDayRecord, setDayRecord } from "../lib/stores/mode.svelte";
+import type { GameState } from "../lib/types";
 
 describe("generateShareText", () => {
   beforeEach(() => {
@@ -83,5 +87,62 @@ describe("generateShareText", () => {
     const lines = text.split("\n");
     expect(lines[0]).toBe("Triad #7 🟩🟨🟩🟩 3/6");
     expect(lines[1]).toBe("🔥 2");
+  });
+});
+
+describe("hydrateGame day record", () => {
+  // #496 = 2026-05-12 (days since the 2025-01-01 epoch). puzzleDate stays
+  // on the live daily's date during archive games — history is keyed by
+  // the date derived from the puzzle number.
+  const baseGame = (): GameState => ({
+    puzzle: { ...INIT_PUZZLE, puzzleNumber: 496 },
+    input: { ...INIT_INPUT },
+    clues: structuredClone(INIT_CLUES),
+    keys: { ...INIT_KEYS },
+    stats: { ...INIT_STATS },
+    puzzleDate: "2026-07-26",
+    guesses: 0,
+    mode: "archive",
+    dailySnapshot: null,
+    history: {},
+  });
+
+  beforeEach(() => {
+    setPuzzle({ ...INIT_PUZZLE });
+    setClues(structuredClone(INIT_CLUES));
+    setInput({ ...INIT_INPUT });
+    setKeys({ ...INIT_KEYS });
+    setStats({ ...INIT_STATS });
+    setGuesses(0);
+    setDayRecord(null);
+  });
+
+  it("exposes the record for the hydrated puzzle date", () => {
+    const game = baseGame();
+    game.history["2026-05-12"] = { solved: true, guesses: 3, daily: true, perfect: false };
+
+    hydrateGame(game);
+
+    expect(getDayRecord()).toEqual({ solved: true, guesses: 3, daily: true, perfect: false });
+  });
+
+  it("clears the record when the date has no history", () => {
+    setDayRecord({ solved: true, guesses: 2, daily: true, perfect: false });
+
+    hydrateGame(baseGame());
+
+    expect(getDayRecord()).toBeNull();
+  });
+
+  it("clears the record for unnumbered (random) games", () => {
+    setDayRecord({ solved: true, guesses: 2, daily: true, perfect: false });
+    const game = baseGame();
+    game.puzzle.puzzleNumber = null;
+    game.mode = "random";
+    game.history["2026-05-12"] = { solved: true, guesses: 3, daily: true, perfect: false };
+
+    hydrateGame(game);
+
+    expect(getDayRecord()).toBeNull();
   });
 });
