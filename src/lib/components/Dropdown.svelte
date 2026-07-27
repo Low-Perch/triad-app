@@ -61,7 +61,7 @@
         aria-label="Lifelines"
         aria-haspopup="true"
         aria-expanded={dropdown.open}
-        class="w-8 h-8 flex items-center place-content-center cursor-pointer disabled:cursor-auto rounded hover:bg-tone-key-active disabled:bg-transparent transition-colors duration-150"
+        class="w-8 h-8 flex items-center place-content-center cursor-pointer disabled:cursor-auto rounded-sm hover:bg-tone-key-active disabled:bg-transparent transition-colors duration-150"
     >
         <svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 0 64 64" width="18">
             <g class="{clues.available ? 'fill-tone-text' : 'fill-tone-text-sub'}">

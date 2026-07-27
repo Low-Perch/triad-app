@@ -36,7 +36,14 @@
 
 <style>
     .tile {
-        @apply relative flex m-3 aspect-square w-14 h-14 justify-center place-items-center;
+        position: relative;
+        display: flex;
+        margin: 0.75rem;
+        aspect-ratio: 1 / 1;
+        width: 3.5rem;
+        height: 3.5rem;
+        justify-content: center;
+        place-items: center;
         border: 2px solid var(--tone-border);
         transition: scale .1s, border-color .2s, background-color .2s, transform .6s;
         transition-delay: 0s, .1s, .1s, 0s;

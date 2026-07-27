@@ -65,10 +65,19 @@
     </div>
 </header>
 
-<style lang="postcss">
+<style>
     .icon-btn {
-        @apply w-8 h-8 flex items-center place-content-center rounded cursor-pointer;
-        @apply hover:bg-tone-key-active;
+        width: 2rem;
+        height: 2rem;
+        display: flex;
+        align-items: center;
+        place-content: center;
+        border-radius: 0.25rem;
+        cursor: pointer;
         transition: background-color 0.15s;
+    }
+
+    .icon-btn:hover {
+        background-color: var(--tone-key-active);
     }
 </style>

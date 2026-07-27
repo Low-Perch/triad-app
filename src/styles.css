@@ -1,6 +1,38 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --color-tone-bg: var(--tone-bg);
+  --color-tone-surface: var(--tone-surface);
+  --color-tone-text: var(--tone-text);
+  --color-tone-text-sub: var(--tone-text-sub);
+  --color-tone-border: var(--tone-border);
+  --color-tone-border-strong: var(--tone-border-strong);
+  --color-tone-key: var(--tone-key);
+  --color-tone-key-active: var(--tone-key-active);
+  --color-tone-key-text: var(--tone-key-text);
+  --color-tone-correct: var(--tone-correct);
+  --color-tone-overlay: var(--tone-overlay);
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
 
 :root {
     --tone-bg: #ffffff;
