@@ -14,6 +14,7 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
+from nltk.corpus import wordnet
 from nltk.stem import WordNetLemmatizer
 from wordfreq import zipf_frequency
 
@@ -37,10 +38,12 @@ MIN_WORDS_PER_KEY = 3
 INFLECTION_ENDINGS = ("ing", "ed", "es", "s")
 
 # A lemma counts as an existing base form if it's a clue word itself OR a
-# reasonably common English word. The clue-word check alone misses short
-# bases (e.g. "fan" — too short to ever be a clue word), which is how
-# fanned/fanning previously slipped through.
-BASE_FORM_ZIPF = 3.0
+# real English word at the same obscurity floor the dictionary uses for
+# clue words (UNCOMMON_ZIPF). The clue-word check alone misses short bases
+# (e.g. "fan" — too short to ever be a clue word), which is how
+# fanned/fanning previously slipped through; a stricter floor here let
+# plurals of borderline bases (snobs, clickers) survive.
+BASE_FORM_ZIPF = UNCOMMON_ZIPF
 
 # Keys that are themselves offensive (player solves for these)
 OFFENSIVE_KEYS = {"fuck", "slut", "cunt", "twat"}
@@ -70,10 +73,36 @@ def base_exists(lemma, all_words):
     return lemma in all_words or zipf_frequency(lemma, "en") >= BASE_FORM_ZIPF
 
 
+def naive_bases(word):
+    """Suffix-strip candidates for words WordNet doesn't know (clickers ->
+    clicker). Only consulted when the lemmatizer can't help — applying it
+    to known words would false-positive on lexemes like "news"."""
+    cands = []
+    if word.endswith("ies") and len(word) > 4:
+        cands.append(word[:-3] + "y")
+    if word.endswith("es") and len(word) > 3:
+        cands.append(word[:-2])
+    if word.endswith("s") and not word.endswith("ss") and len(word) > 3:
+        cands.append(word[:-1])
+    if word.endswith("ed") and len(word) > 4:
+        cands += [word[:-2], word[:-1], word[:-3]]  # walked/baked/fanned
+    if word.endswith("ing") and len(word) > 5:
+        cands += [word[:-3], word[:-3] + "e", word[:-4]]
+    return cands
+
+
 def is_plural(word, lemmatizer, all_words):
     """Check if word is a plural form whose base also exists."""
     lemma = lemmatizer.lemmatize(word, pos="n")
-    return lemma != word and base_exists(lemma, all_words)
+    if lemma != word and base_exists(lemma, all_words):
+        return True
+    if not wordnet.synsets(word):
+        return any(
+            base_exists(c, all_words)
+            for c in naive_bases(word)
+            if word.endswith(("s", "es", "ies"))
+        )
+    return False
 
 
 def is_inflection(word, lemmatizer, all_words):
@@ -82,6 +111,8 @@ def is_inflection(word, lemmatizer, all_words):
         lemma = lemmatizer.lemmatize(word, pos=pos)
         if lemma != word and base_exists(lemma, all_words):
             return True
+    if not wordnet.synsets(word):
+        return any(base_exists(c, all_words) for c in naive_bases(word))
     return False
 
 
