@@ -28,7 +28,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IENGMjc5ODkxOTQyRTgzMEYKUldRUGd5NlVrWmduejB6Z2tjdXFLSDRvQ3JpMmlLdm50VVdjQXZMM216RkdqalRuZWNjV1MwR2YK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDgzM0NBREFCOTZBQjFFOEMKUldTTUhxdVdxNjA4ZzVJQW4yYm9hRWdLOGpnUEt6WFNZNkNZWHFXL29DT1BWWTFuRGJjZWtQbTYK",
       "endpoints": [
         "https://github.com/Low-Perch/triad-app/releases/latest/download/latest.json"
       ]
