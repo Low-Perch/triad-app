@@ -8,12 +8,15 @@ export function localDateString(d: Date = new Date()): string {
     return `${d.getFullYear()}-${month}-${day}`
 }
 
+/** First puzzle date — the engine's 2026-07-27 series epoch. */
+export const PUZZLE_EPOCH = '2026-07-27'
+
 /**
- * Date of a dated puzzle, from its number (days since the 2025-01-01
+ * Date of a dated puzzle, from its number (days since the 2026-07-27
  * epoch). Mirrors the engine's `date_string_from_number`, which keys
  * `history` — `puzzleDate` can't be used for this, as it stays on the
  * live daily's date during archive games.
  */
 export function dateStringFromPuzzleNumber(n: number): string {
-    return localDateString(new Date(2025, 0, 1 + n))
+    return localDateString(new Date(2026, 6, 27 + n))
 }

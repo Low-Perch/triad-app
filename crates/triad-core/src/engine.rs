@@ -148,8 +148,8 @@ mod tests {
     use super::*;
 
     const DAY: u64 = 86_400;
-    /// 500 days past the puzzle epoch (2025-01-01 UTC).
-    const T0: u64 = 1_735_689_600 + 500 * DAY;
+    /// 500 days past the puzzle epoch (2026-07-27 UTC).
+    const T0: u64 = 1_785_110_400 + 500 * DAY;
 
     #[test]
     fn fresh_start_generates_todays_daily() {

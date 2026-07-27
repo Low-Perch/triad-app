@@ -5,7 +5,7 @@
     import { handleArchiveGame } from '../actions'
     import { closeModal } from '../stores/modal.svelte'
     import { getStats } from '../stores/stats.svelte'
-    import { localDateString } from '../date'
+    import { localDateString, PUZZLE_EPOCH } from '../date'
     import type { History } from '../types'
 
     let { onpostNewGame }: { onpostNewGame?: () => void } = $props()
@@ -18,8 +18,8 @@
     ]
     const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
-    // First puzzle date is the 2025-01-01 epoch
-    const MIN_MONTH_INDEX = 2025 * 12
+    // First puzzle date is the 2026-07-27 epoch (July 2026 = month index 6)
+    const MIN_MONTH_INDEX = 2026 * 12 + 6
 
     const today = localDateString()
     const todayYear = Number(today.slice(0, 4))
@@ -68,7 +68,9 @@
     }
 
     function statusFor(date: string): DayStatus {
-        if (date > today) return 'future'
+        // Pre-epoch days have no puzzle; records from before the series
+        // relaunch are hidden with them
+        if (date < PUZZLE_EPOCH || date > today) return 'future'
         const rec = history[date]
         if (rec) return rec.solved ? 'solved' : 'failed'
         return date === today ? 'today' : 'open'

@@ -62,8 +62,10 @@ fn get_pinned() -> &'static HashMap<u32, PinnedEntry> {
 
 // --- Date helpers ---
 
-/// Epoch: 2025-01-01 00:00:00 UTC as Unix timestamp.
-const EPOCH_SECS: u64 = 1_735_689_600;
+/// Epoch: 2026-07-27 00:00:00 UTC as Unix timestamp — the series relaunch.
+/// Puzzle #0 is the transition day; #1 (2026-07-28) is the first full daily
+/// generated under the difficulty ramp and fairness guard.
+const EPOCH_SECS: u64 = 1_785_110_400;
 const SECS_PER_DAY: u64 = 86_400;
 
 /// Returns the current Unix timestamp in seconds. Panics on WASM — callers
@@ -75,7 +77,7 @@ pub fn now_unix_secs() -> u64 {
         .as_secs()
 }
 
-/// Returns days elapsed since 2026-01-01 UTC given a Unix timestamp in seconds.
+/// Returns days elapsed since the 2026-07-27 UTC epoch given a Unix timestamp in seconds.
 pub fn days_since_epoch(now_secs: u64) -> u32 {
     if now_secs < EPOCH_SECS {
         0
@@ -139,7 +141,7 @@ pub fn days_since_epoch_from_date(date: &str) -> Option<u32> {
 }
 
 /// Returns the "YYYY-MM-DD" date for a puzzle number (days since the
-/// 2025-01-01 epoch). Inverse of `days_since_epoch_from_date`.
+/// 2026-07-27 epoch). Inverse of `days_since_epoch_from_date`.
 pub fn date_string_from_number(number: u32) -> String {
     date_string_from_secs(EPOCH_SECS + number as u64 * SECS_PER_DAY)
 }
@@ -179,11 +181,22 @@ fn completions(fragment: &str, key_len: usize, key_at_start: bool) -> HashSet<St
 
 /// A selection is fair when the key is the ONLY chunk completing all three
 /// fragments to dictionary words (no alternate answer a player would be
-/// marked wrong on), and at most one fragment is <= 2 letters — tiny
-/// fragments ("-ed", "-s") constrain almost nothing and drive ambiguity.
+/// marked wrong on), at most one fragment is <= 2 letters — tiny
+/// fragments ("-ed", "-s") constrain almost nothing and drive ambiguity —
+/// and no clue word is contained in another (sugar/sugary reads as one
+/// clue twice).
 fn is_fair_selection(key: &str, words: &[String]) -> bool {
     let key_lower = key.to_lowercase();
     let key_len = key_lower.len();
+
+    for (i, a) in words.iter().enumerate() {
+        for (j, b) in words.iter().enumerate() {
+            if i != j && b.to_lowercase().contains(&a.to_lowercase()) {
+                return false;
+            }
+        }
+    }
+
     let mut tiny_fragments = 0;
     let mut candidates: Option<HashSet<String>> = None;
 
@@ -211,11 +224,11 @@ fn is_fair_selection(key: &str, words: &[String]) -> bool {
 
 // --- Difficulty ---
 
-/// Difficulty tier for a daily puzzle number. The epoch (2025-01-01) was a
-/// Wednesday. NYT-style weekly ramp: Mon/Tue easy, Wed-Fri medium,
+/// Difficulty tier for a daily puzzle number. The epoch (2026-07-27) was a
+/// Monday. NYT-style weekly ramp: Mon/Tue easy, Wed-Fri medium,
 /// Sat/Sun hard.
 pub fn tier_for_puzzle_number(puzzle_number: u32) -> u8 {
-    match (puzzle_number + 2) % 7 {
+    match puzzle_number % 7 {
         0 | 1 => 1,       // Mon, Tue
         2 | 3 | 4 => 2,   // Wed, Thu, Fri
         _ => 3,           // Sat, Sun
@@ -557,15 +570,25 @@ mod tests {
 
     #[test]
     fn weekday_tier_ramp_matches_calendar() {
-        // #0 = 2025-01-01, a Wednesday
-        assert_eq!(tier_for_puzzle_number(0), 2); // Wed
-        assert_eq!(tier_for_puzzle_number(1), 2); // Thu
-        assert_eq!(tier_for_puzzle_number(2), 2); // Fri
-        assert_eq!(tier_for_puzzle_number(3), 3); // Sat
-        assert_eq!(tier_for_puzzle_number(4), 3); // Sun
-        assert_eq!(tier_for_puzzle_number(5), 1); // Mon
-        assert_eq!(tier_for_puzzle_number(6), 1); // Tue
-        assert_eq!(tier_for_puzzle_number(7), 2); // Wed again
+        // #0 = 2026-07-27, a Monday
+        assert_eq!(tier_for_puzzle_number(0), 1); // Mon
+        assert_eq!(tier_for_puzzle_number(1), 1); // Tue
+        assert_eq!(tier_for_puzzle_number(2), 2); // Wed
+        assert_eq!(tier_for_puzzle_number(3), 2); // Thu
+        assert_eq!(tier_for_puzzle_number(4), 2); // Fri
+        assert_eq!(tier_for_puzzle_number(5), 3); // Sat
+        assert_eq!(tier_for_puzzle_number(6), 3); // Sun
+        assert_eq!(tier_for_puzzle_number(7), 1); // Mon again
+    }
+
+    #[test]
+    fn fairness_guard_rejects_contained_clue_words() {
+        // One clue word being a substring of another (sugar/sugary) reads
+        // as the same clue twice
+        assert!(!is_fair_selection(
+            "sug",
+            &["sugar".to_string(), "sugary".to_string(), "suggest".to_string()]
+        ));
     }
 
     #[test]
@@ -771,17 +794,16 @@ mod tests {
     fn today_as_days_since_epoch_is_reasonable() {
         let now = now_unix_secs();
         let days = days_since_epoch(now);
-        // Should be a positive number (we're past the epoch)
-        assert!(days > 0, "Days since epoch should be positive, got {}", days);
-        // Should be less than ~3650 (10 years)
+        // 0 on the relaunch day itself; less than ~3650 (10 years) after
         assert!(days < 3650, "Days since epoch seems too large: {}", days);
     }
 
     #[test]
     fn date_parsing_round_trips() {
-        assert_eq!(days_since_epoch_from_date("2025-01-01"), Some(0));
-        assert_eq!(days_since_epoch_from_date("2025-01-02"), Some(1));
-        assert_eq!(days_since_epoch_from_date("2026-01-01"), Some(365));
+        assert_eq!(days_since_epoch_from_date("2026-07-27"), Some(0));
+        assert_eq!(days_since_epoch_from_date("2026-07-28"), Some(1));
+        assert_eq!(days_since_epoch_from_date("2027-01-01"), Some(158));
+        assert_eq!(days_since_epoch_from_date("2027-07-27"), Some(365));
 
         let secs = EPOCH_SECS + 500 * SECS_PER_DAY;
         let date = date_string_from_secs(secs);
@@ -790,7 +812,7 @@ mod tests {
 
     #[test]
     fn date_parsing_rejects_invalid_input() {
-        assert_eq!(days_since_epoch_from_date("2024-12-31"), None); // pre-epoch
+        assert_eq!(days_since_epoch_from_date("2026-07-26"), None); // pre-epoch
         assert_eq!(days_since_epoch_from_date("2025-02-30"), None); // not a real day
         assert_eq!(days_since_epoch_from_date("2025-13-01"), None);
         assert_eq!(days_since_epoch_from_date("2025-1-1"), None); // not zero-padded

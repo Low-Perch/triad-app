@@ -91,7 +91,7 @@ describe("generateShareText", () => {
 });
 
 describe("hydrateGame day record", () => {
-  // #496 = 2026-05-12 (days since the 2025-01-01 epoch). puzzleDate stays
+  // #496 = 2027-12-05 (days since the 2026-07-27 epoch). puzzleDate stays
   // on the live daily's date during archive games — history is keyed by
   // the date derived from the puzzle number.
   const baseGame = (): GameState => ({
@@ -100,7 +100,7 @@ describe("hydrateGame day record", () => {
     clues: structuredClone(INIT_CLUES),
     keys: { ...INIT_KEYS },
     stats: { ...INIT_STATS },
-    puzzleDate: "2026-07-26",
+    puzzleDate: "2027-12-06",
     guesses: 0,
     mode: "archive",
     dailySnapshot: null,
@@ -119,7 +119,7 @@ describe("hydrateGame day record", () => {
 
   it("exposes the record for the hydrated puzzle date", () => {
     const game = baseGame();
-    game.history["2026-05-12"] = { solved: true, guesses: 3, daily: true, perfect: false };
+    game.history["2027-12-05"] = { solved: true, guesses: 3, daily: true, perfect: false };
 
     hydrateGame(game);
 
@@ -139,7 +139,7 @@ describe("hydrateGame day record", () => {
     const game = baseGame();
     game.puzzle.puzzleNumber = null;
     game.mode = "random";
-    game.history["2026-05-12"] = { solved: true, guesses: 3, daily: true, perfect: false };
+    game.history["2027-12-05"] = { solved: true, guesses: 3, daily: true, perfect: false };
 
     hydrateGame(game);
 
