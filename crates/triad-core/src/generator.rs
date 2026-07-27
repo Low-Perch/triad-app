@@ -2,8 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::OnceLock;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use rand::seq::SliceRandom;
-use rand::thread_rng;
+use rand::seq::IndexedRandom;
 use rand::Rng;
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
@@ -274,7 +273,7 @@ fn get_random_key_with_rng<R: Rng>(rng: &mut R, exclude_key: Option<&str>, tier:
 
 /// Selects a random key from the dictionary, optionally excluding a specific key.
 fn get_random_key(exclude_key: Option<&str>) -> String {
-    let mut rng = thread_rng();
+    let mut rng = rand::rng();
     get_random_key_with_rng(&mut rng, exclude_key, None)
 }
 
@@ -329,7 +328,7 @@ fn select_three_words_with_rng<R: Rng>(rng: &mut R, key: &str) -> Vec<String> {
 
 /// Selects 3 unique words for the given key, mixing prefix and suffix when possible.
 fn select_three_words(key: &str) -> Vec<String> {
-    let mut rng = thread_rng();
+    let mut rng = rand::rng();
     select_three_words_with_rng(&mut rng, key)
 }
 

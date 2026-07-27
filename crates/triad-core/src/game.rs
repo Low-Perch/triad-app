@@ -172,7 +172,7 @@ pub fn disable_keys(state: &mut GameState) {
         .map(|c| c.to_string())
         .collect();
 
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let mut shuffled = keys_to_disable;
     shuffled.shuffle(&mut rng);
 
