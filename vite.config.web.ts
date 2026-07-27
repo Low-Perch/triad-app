@@ -1,14 +1,12 @@
 import { defineConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import wasm from "vite-plugin-wasm";
-import topLevelAwait from "vite-plugin-top-level-await";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
   plugins: [
     svelte(),
     wasm(),
-    topLevelAwait(),
     VitePWA({
       registerType: "autoUpdate",
       workbox: {
@@ -55,6 +53,9 @@ export default defineConfig({
   },
 
   build: {
+    // Native top-level await (the wasm module init) — every browser this
+    // PWA targets supports it, no transform plugin needed
+    target: "esnext",
     outDir: "dist-web",
     rollupOptions: {
       input: {
