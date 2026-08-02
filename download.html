@@ -108,6 +108,8 @@
 
         .btn:hover { opacity: 0.9; }
 
+        button.btn { border: none; font-family: inherit; cursor: pointer; }
+
         .btn.secondary {
             background: transparent;
             border: 1px solid var(--tone-border-strong);
@@ -150,13 +152,20 @@
         <span>t</span><span>r</span><span>i</span><span>a</span><span>d</span>
     </div>
 
-    <h1>Get Triad for desktop</h1>
-    <p class="sub">The same daily puzzle, in a native app. Works fully offline.</p>
+    <h1>Get Triad</h1>
+    <p class="sub">Native desktop builds — or install the web app on any device, straight from the browser.</p>
     <p class="version" id="version"></p>
 
     <p id="status"></p>
 
     <div class="cards" id="cards">
+        <div class="card" data-os="web">
+            <h2>Web app</h2>
+            <p class="note" id="pwa-note">No store, no installer — it installs from the browser and works offline after the first visit.</p>
+            <button type="button" class="btn" id="pwa-install" hidden>Install web app</button>
+            <a class="btn secondary" href="/">Play in browser</a>
+        </div>
+
         <div class="card" data-os="mac">
             <h2>macOS</h2>
             <p class="note">Universal build for Apple Silicon and Intel. The app is unsigned — on first launch, right-click it and choose Open.</p>
@@ -179,9 +188,7 @@
     </div>
 
     <p class="phone">
-        <strong>On your phone?</strong> Triad installs straight from the browser — no store needed.<br />
-        Android: open the game and choose <strong>Install app</strong> from the browser menu.
-        iPhone: in Safari, tap Share → <strong>Add to Home Screen</strong>.
+        <strong>On your phone?</strong> Open this page there and use the Web app card — it installs to your home screen like any other app.
     </p>
 
     <div class="links">
@@ -216,9 +223,11 @@
 
         function detectOS() {
             const ua = navigator.userAgent;
+            // Phones/tablets can't run the desktop builds — lead with the web app
+            if (/Android|iPhone|iPad|iPod/i.test(ua)) return 'web';
             if (/Windows/i.test(ua)) return 'windows';
             if (/Macintosh|Mac OS/i.test(ua)) return 'mac';
-            if (/Linux/i.test(ua) && !/Android/i.test(ua)) return 'linux';
+            if (/Linux/i.test(ua)) return 'linux';
             return null;
         }
 
@@ -227,6 +236,40 @@
             const card = document.querySelector(`.card[data-os="${os}"]`);
             card.classList.add('highlight');
             card.parentElement.prepend(card);
+        }
+
+        // Real install prompt where the browser supports it (Chromium
+        // desktop + Android) — the page carries the manifest and service
+        // worker, so /download is itself an installable context
+        let installPrompt = null;
+        const installBtn = document.getElementById('pwa-install');
+        const pwaNote = document.getElementById('pwa-note');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            installPrompt = e;
+            installBtn.hidden = false;
+        });
+
+        installBtn.addEventListener('click', async () => {
+            if (!installPrompt) return;
+            installPrompt.prompt();
+            const { outcome } = await installPrompt.userChoice;
+            installPrompt = null;
+            if (outcome === 'accepted') {
+                installBtn.textContent = 'Installed — check your apps';
+                installBtn.classList.add('disabled');
+            }
+        });
+
+        // Browsers without beforeinstallprompt get instructions instead
+        const ua = navigator.userAgent;
+        if (/iPhone|iPad|iPod/i.test(ua)) {
+            pwaNote.innerHTML = 'In Safari: tap <strong>Share → Add to Home Screen</strong>. Works offline once installed.';
+        } else if (/Macintosh/i.test(ua) && /Safari/i.test(ua) && !/Chrome|Chromium|Edg/i.test(ua)) {
+            pwaNote.innerHTML = 'In Safari: open the game, then <strong>File → Add to Dock</strong>. Works offline once installed.';
+        } else if (/Firefox/i.test(ua)) {
+            pwaNote.innerHTML = 'Firefox doesn\'t support installing web apps on desktop — play in the browser, or grab a desktop build.';
         }
 
         fetch(RELEASE_API)
